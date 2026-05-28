@@ -1,0 +1,22 @@
+# vim
+*.swp
+
+# temp
+*.tmp
+
+# OS
+.DS_Store
+
+# kube
+kubeconfig
+*.kubeconfig
+
+# env
+.env
+.env.*
+
+# terraform
+.terraform/
+
+# logs
+*.log
