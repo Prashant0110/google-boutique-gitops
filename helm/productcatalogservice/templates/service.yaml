@@ -1,15 +1,25 @@
 apiVersion: v1
 kind: Service
+
 metadata:
-  name: {{ include "productcatalogservice.fullname" . }}
+  name: productcatalogservice
+
   labels:
-    {{- include "productcatalogservice.labels" . | nindent 4 }}
+    app: productcatalogservice
+    component: backend
+    service: productcatalogservice
+
 spec:
   type: {{ .Values.service.type }}
-  ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
-      protocol: TCP
-      name: http
+
   selector:
-    {{- include "productcatalogservice.selectorLabels" . | nindent 4 }}
+    app: productcatalogservice
+
+  ports:
+    - name: grpc
+
+      port: {{ .Values.service.port }}
+
+      targetPort: {{ .Values.service.targetPort }}
+
+      protocol: TCP
