@@ -1,15 +1,25 @@
 apiVersion: v1
 kind: Service
+
 metadata:
-  name: {{ include "redis-cart.fullname" . }}
+  name: redis-cart
+
   labels:
-    {{- include "redis-cart.labels" . | nindent 4 }}
+    app: redis-cart
+    component: cache
+    service: redis-cart
+
 spec:
   type: {{ .Values.service.type }}
-  ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
-      protocol: TCP
-      name: http
+
   selector:
-    {{- include "redis-cart.selectorLabels" . | nindent 4 }}
+    app: redis-cart
+
+  ports:
+    - name: redis
+
+      port: {{ .Values.service.port }}
+
+      targetPort: {{ .Values.service.targetPort }}
+
+      protocol: TCP
