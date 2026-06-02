@@ -1,15 +1,22 @@
 apiVersion: v1
 kind: Service
+
 metadata:
-  name: {{ include "currencyservice.fullname" . }}
+  name: currencyservice
+
   labels:
-    {{- include "currencyservice.labels" . | nindent 4 }}
+    app: currencyservice
+    component: backend
+    service: currencyservice
+
 spec:
   type: {{ .Values.service.type }}
-  ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
-      protocol: TCP
-      name: http
+
   selector:
-    {{- include "currencyservice.selectorLabels" . | nindent 4 }}
+    app: currencyservice
+
+  ports:
+    - name: grpc
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
