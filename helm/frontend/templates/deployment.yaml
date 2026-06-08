@@ -34,8 +34,33 @@ spec:
           ports:
             - containerPort: {{ .Values.service.targetPort }}
 
-          env:
-            {{- range .Values.containerEnvVars }}
-            - name: {{ .name }}
-              value: {{ .value | quote }}
-            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: frontend-config
+
+          readinessProbe:
+            initialDelaySeconds: 10
+            httpGet:
+              path: /_healthz
+              port: 8080
+              httpHeaders:
+                - name: Cookie
+                  value: shop_session-id=x-readiness-probe
+
+          livenessProbe:
+            initialDelaySeconds: 10
+            httpGet:
+              path: /_healthz
+              port: 8080
+              httpHeaders:
+                - name: Cookie
+                  value: shop_session-id=x-liveness-probe
+
+          resources:
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
