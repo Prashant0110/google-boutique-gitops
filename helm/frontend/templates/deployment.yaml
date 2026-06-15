@@ -1,66 +1,53 @@
 apiVersion: apps/v1
 kind: Deployment
-
 metadata:
   name: frontend
-
   labels:
     app: frontend
     component: frontend
     service: frontend
-
 spec:
   replicas: {{ .Values.replicaCount }}
-
   selector:
     matchLabels:
       app: frontend
-
   template:
     metadata:
       labels:
         app: frontend
         component: frontend
         service: frontend
-
     spec:
       containers:
         - name: frontend
-
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-
           ports:
-            - containerPort: {{ .Values.service.targetPort }}
-
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
           envFrom:
             - configMapRef:
                 name: frontend-config
-
           readinessProbe:
             initialDelaySeconds: 10
             httpGet:
               path: /_healthz
-              port: 8080
+              port: http
               httpHeaders:
                 - name: Cookie
                   value: shop_session-id=x-readiness-probe
-
           livenessProbe:
             initialDelaySeconds: 10
             httpGet:
               path: /_healthz
-              port: 8080
+              port: http
               httpHeaders:
                 - name: Cookie
                   value: shop_session-id=x-liveness-probe
-
           resources:
             requests:
               cpu: {{ .Values.resources.requests.cpu }}
               memory: {{ .Values.resources.requests.memory }}
-
             limits:
               cpu: {{ .Values.resources.limits.cpu }}
               memory: {{ .Values.resources.limits.memory }}
