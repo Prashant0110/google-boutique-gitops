@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: frontend
+  namespace: argocd
+
+spec:
+  project: default
+
+  source:
+    repoURL: git@github.com:Prashant0110/google-boutique-gitops.git
+    targetRevision: main
+    path: helm/frontend
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ecommerce-prod
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
