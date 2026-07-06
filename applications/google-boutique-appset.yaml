@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+
+metadata:
+  name: google-boutique
+  namespace: argocd
+
+spec:
+  generators:
+    - git:
+        repoURL: git@github.com:Prashant0110/google-boutique-gitops.git
+        revision: main
+        directories:
+          - path: helm/*
+
+  template:
+    metadata:
+      name: "{{path.basename}}"
+
+    spec:
+      project: default
+
+      source:
+        repoURL: git@github.com:Prashant0110/google-boutique-gitops.git
+        targetRevision: main
+        path: "{{path}}"
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: ecommerce-prod
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
