@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: prashantsapkota27/boutique-frontend
-  tag: latest
+  tag:  bc955470
   pullPolicy: IfNotPresent
 
 service:
