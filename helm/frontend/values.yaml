@@ -1,7 +1,7 @@
 replicaCount: 1
 image:
   repository: prashantsapkota27/boutique-frontend
-  tag: f3e9eaac
+  tag: 2759b003
   pullPolicy: IfNotPresent
 service:
   type: ClusterIP
