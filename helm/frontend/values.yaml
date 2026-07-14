@@ -1,15 +1,12 @@
 replicaCount: 1
-
 image:
   repository: prashantsapkota27/boutique-frontend
-  tag:  bc955470
+  tag: f3e9eaac
   pullPolicy: IfNotPresent
-
 service:
   type: ClusterIP
   port: 80
   targetPort: 8080
-
 config:
   PORT: "8080"
   PRODUCT_CATALOG_SERVICE_ADDR: "productcatalogservice:3550"
@@ -21,7 +18,6 @@ config:
   SHOPPING_ASSISTANT_SERVICE_ADDR: "shoppingassistantservice:8080"
   AD_SERVICE_ADDR: "adservice:9555"
   ENABLE_PROFILER: "0"
-
 resources:
   requests:
     cpu: 100m
