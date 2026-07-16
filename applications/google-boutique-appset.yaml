@@ -6,7 +6,7 @@ metadata:
 spec:
   generators:
     - git:
-        repoURL: git@github.com:Prashant0110/google-boutique-gitops.git
+        repoURL: https://github.com/Prashant0110/google-boutique-gitops.git
         revision: main
         directories:
           - path: helm/*
@@ -33,7 +33,7 @@ spec:
     spec:
       project: default
       source:
-        repoURL: git@github.com:Prashant0110/google-boutique-gitops.git
+        repoURL: https://github.com/Prashant0110/google-boutique-gitops.git
         targetRevision: main
         path: "{{path}}"
       destination:
