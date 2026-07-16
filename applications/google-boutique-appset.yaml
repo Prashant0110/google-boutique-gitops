@@ -9,7 +9,7 @@ spec:
         repoURL: https://github.com/Prashant0110/google-boutique-gitops.git
         revision: main
         directories:
-          - path: helm/*
+          - path: helm/apps/*
   template:
     metadata:
       name: "{{path.basename}}"

@@ -1,0 +1,35 @@
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+
+metadata:
+  name: google-boutique
+  namespace: argocd
+
+spec:
+
+  commonUpdateSettings:
+    updateStrategy: newest-build
+    ignoreTags:
+      - latest
+
+  writeBackConfig:
+    method: git
+    gitConfig:
+      branch: main
+      writeBackTarget: helmvalues
+
+  applicationRefs:
+    - namePattern: "*"
+
+      labelSelectors:
+        matchLabels:
+          image-updater: "true"
+
+      images:
+        - alias: frontend
+          imageName:  prashantsapkota27/boutique-frontend
+
+          manifestTargets:
+            helm:
+              name: image.repository
+              tag: image.tag
