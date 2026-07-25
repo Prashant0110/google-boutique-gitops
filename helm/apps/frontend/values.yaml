@@ -1,3 +1,4 @@
+#---values---
 replicaCount: 1
 image:
   repository: prashantsapkota27/boutique-frontend
