@@ -4,5 +4,5 @@ helm:
     value: prashantsapkota27/boutique-frontend
     forcestring: true
   - name: image.tag
-    value: 39a00df3
+    value: latest
     forcestring: true
