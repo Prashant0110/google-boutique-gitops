@@ -6,7 +6,6 @@ metadata:
   namespace: argocd
 
 spec:
-
   commonUpdateSettings:
     updateStrategy: newest-build
     ignoreTags:
@@ -25,11 +24,4 @@ spec:
         matchLabels:
           image-updater: "true"
 
-      images:
-        - alias: frontend
-          imageName:  prashantsapkota27/boutique-frontend
-
-          manifestTargets:
-            helm:
-              name: image.repository
-              tag: image.tag
+      useAnnotations: true
