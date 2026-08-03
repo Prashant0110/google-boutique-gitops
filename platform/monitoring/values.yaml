@@ -333,13 +333,119 @@ defaultRules:
 
   ## Provide custom recording or alerting rules to be deployed into the cluster.
   ##
-additionalPrometheusRulesMap: {}
-#  rule-name:
-#    groups:
-#    - name: my_group
-#      rules:
-#      - record: my_record
-#        expr: 100 * my_record
+additionalPrometheusRulesMap:
+  boutique-alerts:
+    groups:
+    - name: boutique.rules
+      rules:
+
+      #
+      # ============================================
+      # COUNTER ALERTS
+      # ============================================
+      #
+
+      - alert: FrontendHighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[2m]))
+            /
+            sum(rate(http_requests_total[2m]))
+          ) > 0.05
+        for: 1m
+        labels:
+          severity: critical
+          service: frontend
+        annotations:
+          summary: "Frontend High Error Rate"
+          description: "More than 5% of frontend requests are returning HTTP 5xx."
+
+      - alert: FrontendNoTraffic
+        expr: |
+          sum(rate(http_requests_total{path!="/metrics",path!="/_healthz"}[2m])) < 0.01
+        for: 2m
+        labels:
+          severity: warning
+          service: frontend
+        annotations:
+          summary: "Frontend No Traffic"
+          description: "No user traffic detected during the last 2 minutes."
+
+      - alert: FrontendHighRequestRate
+        expr: |
+          sum(rate(http_requests_total{path!="/metrics",path!="/_healthz"}[1m])) > 2
+        for: 1m
+        labels:
+          severity: info
+          service: frontend
+        annotations:
+          summary: "Frontend High Request Rate"
+          description: "Frontend is receiving more than 2 requests per second."
+
+      #
+      # ============================================
+      # HISTOGRAM ALERTS
+      # ============================================
+      #
+
+      - alert: FrontendHighP95Latency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(
+              rate(
+                http_request_duration_seconds_bucket{
+                  path!="/metrics",
+                  path!="/_healthz"
+                }[2m]
+              )
+            ) by (le)
+          ) > 0.2
+        for: 1m
+        labels:
+          severity: warning
+          service: frontend
+        annotations:
+          summary: "Frontend High P95 Latency"
+          description: "P95 latency exceeded 200 ms."
+
+      - alert: FrontendHighP99Latency
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum(
+              rate(
+                http_request_duration_seconds_bucket{
+                  path!="/metrics",
+                  path!="/_healthz"
+                }[2m]
+              )
+            ) by (le)
+          ) > 0.5
+        for: 1m
+        labels:
+          severity: critical
+          service: frontend
+        annotations:
+          summary: "Frontend High P99 Latency"
+          description: "P99 latency exceeded 500 ms."
+
+      #
+      # ============================================
+      # GAUGE ALERTS
+      # ============================================
+      #
+
+      - alert: FrontendHighConcurrentRequests
+        expr: |
+          http_requests_in_flight > 5
+        for: 30s
+        labels:
+          severity: warning
+          service: frontend
+        annotations:
+          summary: "Frontend High Concurrent Requests"
+          description: "Frontend currently has more than 5 requests in flight."
 
 ##
 global:
