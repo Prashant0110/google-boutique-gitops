@@ -47,7 +47,7 @@ config:
 
     prometheus:
       endpoint: "0.0.0.0:8889"
-      namespace: ""
+      namespace: "traces"
       metric_expiration: 180s
 
     debug: {}
