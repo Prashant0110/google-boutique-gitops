@@ -8,6 +8,13 @@ ports:
     containerPort: 8889
     servicePort: 8889
 
+# Enables automatic scraping by Prometheus Operator (kube-prometheus-stack)
+serviceMonitor:
+  enabled: true
+  metricsEndpoints:
+  - port: metrics
+    interval: 15s
+
 config:
   receivers:
     otlp:
@@ -17,22 +24,14 @@ config:
         http:
           endpoint: "0.0.0.0:4318"
 
-    prometheus:
-      config:
-        scrape_configs:
-          - job_name: opentelemetry-collector
-            scrape_interval: 10s
-            static_configs:
-              - targets:
-                  - ${env:MY_POD_IP}:8889
-
-  # 1. Added ServiceGraph Connector
   connectors:
     servicegraph:
-      latency_histogram_buckets: [2ms, 8ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s, 10s]
-      dimensions: []
+      latency_histogram_buckets: [ 2ms, 8ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s, 10s ]
+      dimensions:
+      - http.method
+      - http.status_code
       store:
-        ttl: 2s
+        ttl: 10s
         max_items: 1000
 
   processors:
@@ -46,10 +45,10 @@ config:
       tls:
         insecure: true
 
-    # 2. Added Prometheus Exporter to serve service graph metrics on port 8889
     prometheus:
       endpoint: "0.0.0.0:8889"
       namespace: ""
+      metric_expiration: 180s
 
     debug: {}
 
@@ -57,21 +56,19 @@ config:
     telemetry:
       metrics:
         readers:
-          - pull:
-              exporter:
-                prometheus:
-                  host: ${env:MY_POD_IP}
-                  port: 8888 # Shifted internal telemetry to 8888 to avoid port collision with 8889
+        - pull:
+            exporter:
+              prometheus:
+                host: "0.0.0.0"
+                port: 8888
 
     pipelines:
-      # 3. Added 'servicegraph' connector as an exporter target for traces
       traces:
-        receivers: [otlp]
-        processors: [batch]
-        exporters: [otlp/tempo, debug, servicegraph]
+        receivers: [ otlp ]
+        processors: [ batch ]
+        exporters: [ otlp/tempo, debug, servicegraph ]
 
-      # 4. Added new pipeline to output ServiceGraph metrics to Prometheus
       metrics/servicegraph:
-        receivers: [servicegraph]
-        processors: [batch]
-        exporters: [prometheus]
+        receivers: [ servicegraph ]
+        processors: [ batch ]
+        exporters: [ prometheus ]
