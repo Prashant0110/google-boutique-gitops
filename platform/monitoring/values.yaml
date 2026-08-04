@@ -1783,7 +1783,7 @@ grafana:
     uid: prometheus
     type: prometheus
     access: proxy
-    url: http://prometheus-k8s.monitoring.svc.cluster.local:9090
+    url: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
     isDefault: true
 
   - name: Loki
