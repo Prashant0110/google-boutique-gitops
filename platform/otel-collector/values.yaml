@@ -4,33 +4,21 @@ image:
   repository: "otel/opentelemetry-collector-contrib"
   tag: "0.105.0"
 
+# 1. Override the Helm chart's internal metrics port setting
+useInternalAddress: false
+
+# 2. Re-bind the chart's default metrics service port away from 8888
+ports:
+  metrics:
+    enabled: true
+    containerPort: 8889
+    servicePort: 8889
+
 config:
   service:
     telemetry:
       metrics:
         address: ":8889"
-
-config:
-  receivers:
-    otlp:
-      protocols:
-        grpc:
-          endpoint: "0.0.0.0:4317"
-        http:
-          endpoint: "0.0.0.0:4318"
-
-  processors:
-    batch:
-      send_batch_size: 8192
-      timeout: 200ms
-
-  exporters:
-    otlp/tempo:
-      endpoint: "tempo.monitoring.svc.cluster.local:4317"
-      tls:
-        insecure: true
-
-  service:
     pipelines:
       traces:
         receivers:
@@ -46,3 +34,24 @@ config:
           - batch
         exporters:
           - otlp/tempo
+
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: "0.0.0.0:4317"
+        http:
+          endpoint: "0.0.0.0:4318"
+    # 3. Explicitly disable the default chart prometheus receiver binding on 8888
+    prometheus: null
+
+  processors:
+    batch:
+      send_batch_size: 8192
+      timeout: 200ms
+
+  exporters:
+    otlp/tempo:
+      endpoint: "tempo.monitoring.svc.cluster.local:4317"
+      tls:
+        insecure: true
