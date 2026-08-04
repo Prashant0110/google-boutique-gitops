@@ -11,6 +11,8 @@ ports:
 # Enables automatic scraping by Prometheus Operator (kube-prometheus-stack)
 serviceMonitor:
   enabled: true
+  extraLabels:
+    release: monitoring
   metricsEndpoints:
   - port: metrics
     interval: 15s
