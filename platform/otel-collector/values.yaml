@@ -10,7 +10,6 @@ ports:
     containerPort: 8889
     servicePort: 8889
 
-# Enables automatic scraping by Prometheus Operator (kube-prometheus-stack)
 serviceMonitor:
   enabled: true
   extraLabels:
@@ -56,10 +55,6 @@ config:
     debug: {}
 
   service:
-    telemetry:
-      metrics:
-        address: "0.0.0.0:8888"
-
     pipelines:
       traces:
         receivers: [ otlp ]
