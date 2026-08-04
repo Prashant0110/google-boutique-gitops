@@ -1,40 +1,16 @@
 mode: deployment
 
 image:
-  repository: "otel/opentelemetry-collector-contrib"
+  repository: otel/opentelemetry-collector-contrib
   tag: "0.105.0"
 
-# 1. Turn off the default prometheus scraper injected by the Helm chart
-prometheus:
-  enabled: false
-
-# 2. Re-bind or disable internal chart metrics port
 ports:
   metrics:
-    enabled: false
+    enabled: true
+    containerPort: 8889
+    servicePort: 8889
 
 config:
-  # 3. Explicitly set telemetry address to 8889 inside collector config
-  service:
-    telemetry:
-      metrics:
-        address: ":8889"
-    pipelines:
-      traces:
-        receivers:
-          - otlp
-        processors:
-          - batch
-        exporters:
-          - otlp/tempo
-      logs:
-        receivers:
-          - otlp
-        processors:
-          - batch
-        exporters:
-          - otlp/tempo
-
   receivers:
     otlp:
       protocols:
@@ -43,6 +19,15 @@ config:
         http:
           endpoint: "0.0.0.0:4318"
 
+    prometheus:
+      config:
+        scrape_configs:
+          - job_name: opentelemetry-collector
+            scrape_interval: 10s
+            static_configs:
+              - targets:
+                  - ${env:MY_POD_IP}:8889
+
   processors:
     batch:
       send_batch_size: 8192
@@ -50,6 +35,25 @@ config:
 
   exporters:
     otlp/tempo:
-      endpoint: "tempo.monitoring.svc.cluster.local:4317"
+      endpoint: tempo.monitoring.svc.cluster.local:4317
       tls:
         insecure: true
+
+  service:
+    telemetry:
+      metrics:
+        readers:
+          - pull:
+              exporter:
+                prometheus:
+                  host: ${env:MY_POD_IP}
+                  port: 8889
+
+    pipelines:
+      traces:
+        receivers:
+          - otlp
+        processors:
+          - batch
+        exporters:
+          - otlp/tempo
