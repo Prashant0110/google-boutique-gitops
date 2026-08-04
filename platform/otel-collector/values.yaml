@@ -1,18 +1,18 @@
 mode: deployment
 
-# Recreate strategy ensures old pods release ports before new ones start
-strategy:
-  type: Recreate
+# strategy:
+#   type: Recreate
 
 image:
   repository: otel/opentelemetry-collector-contrib
-  tag: "0.105.0"
+  tag: "0.157.0"
 
 ports:
   metrics:
     enabled: true
     containerPort: 8888
     servicePort: 8888
+
   prometheus:
     enabled: true
     containerPort: 8889
@@ -40,7 +40,17 @@ config:
 
   connectors:
     servicegraph:
-      latency_histogram_buckets: [ 2ms, 8ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s, 10s ]
+      latency_histogram_buckets:
+      - 2ms
+      - 8ms
+      - 50ms
+      - 100ms
+      - 200ms
+      - 500ms
+      - 1s
+      - 2s
+      - 5s
+      - 10s
       dimensions:
       - http.method
       - http.status_code
@@ -66,18 +76,21 @@ config:
     debug: {}
 
   service:
-    telemetry:
-      metrics:
-        address: ""
-        level: detailed
-
     pipelines:
       traces:
-        receivers: [ otlp ]
-        processors: [ batch ]
-        exporters: [ otlp/tempo, debug, servicegraph ]
+        receivers:
+        - otlp
+        processors:
+        - batch
+        exporters:
+        - otlp/tempo
+        - debug
+        - servicegraph
 
       metrics/servicegraph:
-        receivers: [ servicegraph ]
-        processors: [ batch ]
-        exporters: [ prometheus ]
+        receivers:
+        - servicegraph
+        processors:
+        - batch
+        exporters:
+        - prometheus
