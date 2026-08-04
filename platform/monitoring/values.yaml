@@ -1795,10 +1795,11 @@ grafana:
     isDefault: false
     editable: true
     jsonData:
+      httpMethod: GET
       tracesToMetrics:
-        datasourceUid: 'prometheus'
+        datasourceUid: prometheus
       serviceMap:
-        datasourceUid: 'prometheus'
+        datasourceUid: prometheus
       nodeGraph:
         enabled: true
   ## Configure additional grafana datasources as a templated string (passed through tpl)
