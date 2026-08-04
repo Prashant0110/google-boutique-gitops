@@ -4,17 +4,17 @@ image:
   repository: "otel/opentelemetry-collector-contrib"
   tag: "0.105.0"
 
-# 1. Override the Helm chart's internal metrics port setting
-useInternalAddress: false
+# 1. Turn off the default prometheus scraper injected by the Helm chart
+prometheus:
+  enabled: false
 
-# 2. Re-bind the chart's default metrics service port away from 8888
+# 2. Re-bind or disable internal chart metrics port
 ports:
   metrics:
-    enabled: true
-    containerPort: 8889
-    servicePort: 8889
+    enabled: false
 
 config:
+  # 3. Explicitly set telemetry address to 8889 inside collector config
   service:
     telemetry:
       metrics:
@@ -42,8 +42,6 @@ config:
           endpoint: "0.0.0.0:4317"
         http:
           endpoint: "0.0.0.0:4318"
-    # 3. Explicitly disable the default chart prometheus receiver binding on 8888
-    prometheus: null
 
   processors:
     batch:
