@@ -51,9 +51,6 @@ config:
 
     pipelines:
       traces:
-        receivers:
-          - otlp
-        processors:
-          - batch
-        exporters:
-          - otlp/tempo
+        receivers: [otlp]
+        processors: [batch]
+        exporters: [otlp/tempo, debug]
