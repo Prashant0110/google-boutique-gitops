@@ -4,6 +4,10 @@ image:
   repository: "otel/opentelemetry-collector-contrib"
   tag: "0.105.0"
 
+telemetry:
+  metrics:
+    address: ":8889"
+
 config:
   receivers:
     otlp:
