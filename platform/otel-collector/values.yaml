@@ -1,5 +1,3 @@
-mode: deployment
-
 image:
   repository: otel/opentelemetry-collector-contrib
   tag: "0.105.0"
@@ -28,6 +26,15 @@ config:
               - targets:
                   - ${env:MY_POD_IP}:8889
 
+  # 1. Added ServiceGraph Connector
+  connectors:
+    servicegraph:
+      latency_histogram_buckets: [2ms, 8ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s, 10s]
+      dimensions: []
+      store:
+        ttl: 2s
+        max_items: 1000
+
   processors:
     batch:
       send_batch_size: 8192
@@ -39,6 +46,13 @@ config:
       tls:
         insecure: true
 
+    # 2. Added Prometheus Exporter to serve service graph metrics on port 8889
+    prometheus:
+      endpoint: "0.0.0.0:8889"
+      namespace: ""
+
+    debug: {}
+
   service:
     telemetry:
       metrics:
@@ -47,10 +61,17 @@ config:
               exporter:
                 prometheus:
                   host: ${env:MY_POD_IP}
-                  port: 8889
+                  port: 8888 # Shifted internal telemetry to 8888 to avoid port collision with 8889
 
     pipelines:
+      # 3. Added 'servicegraph' connector as an exporter target for traces
       traces:
         receivers: [otlp]
         processors: [batch]
-        exporters: [otlp/tempo, debug]
+        exporters: [otlp/tempo, debug, servicegraph]
+
+      # 4. Added new pipeline to output ServiceGraph metrics to Prometheus
+      metrics/servicegraph:
+        receivers: [servicegraph]
+        processors: [batch]
+        exporters: [prometheus]
