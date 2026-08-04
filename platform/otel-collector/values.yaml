@@ -1,5 +1,9 @@
 mode: deployment
 
+# Recreate strategy ensures old pods release ports before new ones start
+strategy:
+  type: Recreate
+
 image:
   repository: otel/opentelemetry-collector-contrib
   tag: "0.105.0"
@@ -7,8 +11,13 @@ image:
 ports:
   metrics:
     enabled: true
+    containerPort: 8888
+    servicePort: 8888
+  prometheus:
+    enabled: true
     containerPort: 8889
     servicePort: 8889
+    protocol: TCP
 
 serviceMonitor:
   enabled: true
@@ -16,6 +25,8 @@ serviceMonitor:
     release: monitoring
   metricsEndpoints:
   - port: metrics
+    interval: 15s
+  - port: prometheus
     interval: 15s
 
 config:
@@ -55,6 +66,11 @@ config:
     debug: {}
 
   service:
+    telemetry:
+      metrics:
+        address: ""
+        level: detailed
+
     pipelines:
       traces:
         receivers: [ otlp ]
