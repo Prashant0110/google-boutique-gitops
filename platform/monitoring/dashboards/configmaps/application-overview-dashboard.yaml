@@ -531,7 +531,4 @@ data:
       "title": "Requests Per Second  ",
       "variables": []
     }
-kind: ConfigMap
-metadata:
-  name: application-overview-dashboard
-  namespace: monitoring
+
