@@ -190,15 +190,16 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "prometheus"
+                        "name": "tempo"
                       },
-                      "group": "prometheus",
+                      "group": "tempo",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"ecommerce-prod\", container!=\"\", container!=\"POD\"}[5m])) by (pod)",
-                        "legendFormat": "{{pod}}",
-                        "range": true
+                        "limit": 20,
+                        "metricsQueryType": "range",
+                        "queryType": "serviceMap",
+                        "serviceMapUseNativeHistograms": false,
+                        "tableType": "traces"
                       },
                       "version": "v0"
                     },
@@ -213,7 +214,185 @@
           "description": "",
           "id": 11,
           "links": [],
-          "title": "Pod CPU Usage",
+          "title": "Tempo Service Graph",
+          "vizConfig": {
+            "group": "nodeGraph",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {},
+                "overrides": []
+              },
+              "options": {
+                "edges": {},
+                "layoutAlgorithm": "layered",
+                "nodes": {},
+                "zoomMode": "cooperative"
+              }
+            },
+            "version": "13.1.0"
+          }
+        }
+      },
+      "panel-12": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "loki"
+                      },
+                      "group": "loki",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "direction": "backward",
+                        "editorMode": "code",
+                        "expr": "{namespace=\"ecommerce-prod\"} |~ \"(?i)error\" | json | line_format \"{{.pod}} | {{.__line__}}\"",
+                        "queryType": "range"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "group": "filterFieldsByName",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "include": {
+                        "names": [
+                          "labels",
+                          "Time",
+                          "Line"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "description": "",
+          "id": 12,
+          "links": [],
+          "title": "Recent Errors",
+          "vizConfig": {
+            "group": "table",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "auto",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false,
+                    "styleField": "labels"
+                  },
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "labels",
+                      "scope": "series"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.width",
+                        "value": 653
+                      },
+                      {
+                        "id": "custom.hideFrom.viz",
+                        "value": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              "options": {
+                "cellHeight": "sm",
+                "showHeader": true,
+                "sortBy": [
+                  {
+                    "desc": true,
+                    "displayName": "labels"
+                  }
+                ]
+              }
+            },
+            "version": "13.1.0"
+          }
+        }
+      },
+      "panel-13": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "prometheus"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"ecommerce-prod\", container!=\"\"}[5m])) by (pod)",
+                        "legendFormat": "{{pod}}",
+                        "range": true
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 13,
+          "links": [],
+          "title": "Container CPU Usage",
           "vizConfig": {
             "group": "bargauge",
             "kind": "VizConfig",
@@ -244,10 +423,10 @@
                 "displayMode": "lcd",
                 "legend": {
                   "calcs": [],
-                  "displayMode": "table",
+                  "displayMode": "list",
                   "overflow": "ellipsis",
                   "placement": "bottom",
-                  "showLegend": true
+                  "showLegend": false
                 },
                 "maxVizHeight": 300,
                 "minVizHeight": 16,
@@ -264,177 +443,6 @@
                 "showUnfilled": true,
                 "sizing": "auto",
                 "valueMode": "color"
-              }
-            },
-            "version": "13.1.0"
-          }
-        }
-      },
-      "panel-12": {
-        "kind": "Panel",
-        "spec": {
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "hidden": false,
-                    "query": {
-                      "datasource": {
-                        "name": "prometheus"
-                      },
-                      "group": "prometheus",
-                      "kind": "DataQuery",
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "sum(container_memory_working_set_bytes{namespace=\"ecommerce-prod\", container!=\"\", container!=\"POD\"}) by (pod)",
-                        "legendFormat": "{{pods}}",
-                        "range": true
-                      },
-                      "version": "v0"
-                    },
-                    "refId": "A"
-                  }
-                }
-              ],
-              "queryOptions": {},
-              "transformations": []
-            }
-          },
-          "description": "",
-          "id": 12,
-          "links": [],
-          "title": "Pod Memory Usage",
-          "transparent": true,
-          "vizConfig": {
-            "group": "stat",
-            "kind": "VizConfig",
-            "spec": {
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green",
-                        "value": 0
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  "unit": "bytes"
-                },
-                "overrides": []
-              },
-              "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "",
-                  "values": false
-                },
-                "showPercentChange": true,
-                "textMode": "auto",
-                "wideLayout": true
-              }
-            },
-            "version": "13.1.0"
-          }
-        }
-      },
-      "panel-13": {
-        "kind": "Panel",
-        "spec": {
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "hidden": false,
-                    "query": {
-                      "datasource": {
-                        "name": "prometheus"
-                      },
-                      "group": "prometheus",
-                      "kind": "DataQuery",
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "((sum(rate(http_requests_total{namespace=\"ecommerce-prod\", status=~\"5..|4..\"}[5m])) or vector(0)) / sum(rate(http_requests_total{namespace=\"ecommerce-prod\"}[5m]))) * 100",
-                        "legendFormat": "__auto",
-                        "range": true
-                      },
-                      "version": "v0"
-                    },
-                    "refId": "A"
-                  }
-                }
-              ],
-              "queryOptions": {},
-              "transformations": []
-            }
-          },
-          "description": "",
-          "id": 13,
-          "links": [],
-          "title": "HTTP Error Rate (%)",
-          "vizConfig": {
-            "group": "stat",
-            "kind": "VizConfig",
-            "spec": {
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green",
-                        "value": 0
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  "unit": "percent"
-                },
-                "overrides": []
-              },
-              "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "",
-                  "values": false
-                },
-                "showPercentChange": true,
-                "textMode": "auto",
-                "wideLayout": true
               }
             },
             "version": "13.1.0"
@@ -460,8 +468,8 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum by (client, server) (rate(traces_service_graph_request_total[5m]))",
-                        "legendFormat": "req/sec",
+                        "expr": "sum(container_memory_working_set_bytes{namespace=\"ecommerce-prod\", container!=\"\"}) by (pod)",
+                        "legendFormat": "{{pods}}",
                         "range": true
                       },
                       "version": "v0"
@@ -477,45 +485,40 @@
           "description": "",
           "id": 14,
           "links": [],
-          "title": "Request Rate",
+          "title": "Infrastructure (Memory)",
           "vizConfig": {
-            "group": "gauge",
+            "group": "piechart",
             "kind": "VizConfig",
             "spec": {
               "fieldConfig": {
                 "defaults": {
                   "color": {
-                    "mode": "thresholds"
+                    "fixedColor": "#73BF69",
+                    "mode": "palette-classic"
                   },
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green",
-                        "value": 0
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
+                  "custom": {
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    }
                   },
-                  "unit": "reqps"
+                  "unit": "bytes"
                 },
                 "overrides": []
               },
               "options": {
-                "barShape": "flat",
-                "barWidthFactor": 0.23,
-                "effects": {
-                  "barGlow": false,
-                  "centerGlow": false,
-                  "gradient": true
+                "displayLabels": [
+                  "percent",
+                  "value"
+                ],
+                "legend": {
+                  "displayMode": "list",
+                  "overflow": "ellipsis",
+                  "placement": "right",
+                  "showLegend": true
                 },
-                "endpointMarker": "point",
-                "minVizHeight": 75,
-                "minVizWidth": 75,
-                "orientation": "auto",
+                "pieType": "pie",
                 "reduceOptions": {
                   "calcs": [
                     "lastNotNull"
@@ -523,14 +526,12 @@
                   "fields": "",
                   "values": false
                 },
-                "segmentCount": 1,
-                "segmentSpacing": 0.3,
-                "shape": "circle",
-                "showThresholdLabels": false,
-                "showThresholdMarkers": false,
-                "sizing": "auto",
-                "sparkline": true,
-                "textMode": "auto"
+                "sort": "asc",
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
               }
             },
             "version": "13.1.0"
@@ -556,8 +557,8 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum by (client, server) (rate(traces_service_graph_request_failed_total[5m]))",
-                        "legendFormat": "req/sec",
+                        "expr": "(\r\n  sum(rate(http_requests_total{namespace=\"ecommerce-prod\", status=~\"5.*\"}[5m])) \r\n  / \r\n  sum(rate(http_requests_total{namespace=\"ecommerce-prod\"}[5m]))\r\n) * 100 or vector(0)",
+                        "legendFormat": "{{pod}}",
                         "range": true
                       },
                       "version": "v0"
@@ -573,7 +574,7 @@
           "description": "",
           "id": 15,
           "links": [],
-          "title": "Failed Request Rate",
+          "title": "Error Rate (%)",
           "vizConfig": {
             "group": "stat",
             "kind": "VizConfig",
@@ -596,7 +597,7 @@
                       }
                     ]
                   },
-                  "unit": "reqps"
+                  "unit": "percent"
                 },
                 "overrides": []
               },
