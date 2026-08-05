@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-dashboards
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  source:
+    repoURL: https://github.com/Prashant0110/google-boutique-gitops.git
+    targetRevision: HEAD
+    path: platform/monitoring/dashboards/configmaps
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
