@@ -23,13 +23,13 @@ loki:
 
   schemaConfig:
     configs:
-      - from: "2024-01-01"
-        store: tsdb
-        object_store: filesystem
-        schema: v13
-        index:
-          prefix: loki_index_
-          period: 24h
+    - from: "2024-01-01"
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: loki_index_
+        period: 24h
 
   limits_config:
     retention_period: 168h
@@ -40,3 +40,10 @@ gateway:
 monitoring:
   selfMonitoring:
     enabled: false
+
+ruler:
+  enabled: true
+  alertmanager_url: http://monitoring-kube-prometheus-alertmanager.monitoring.svc.cluster.local:9093
+  enable_api: true
+  storage:
+    type: filesystem

@@ -1,0 +1,30 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: google-boutique-loki-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  groups:
+  - name: google-boutique-logs.rules
+    rules:
+    # 1. High ERROR Log Rate (> 10 errors in 2 minutes)
+    - alert: ErrorLogSpike
+      expr: sum(count_over_time({namespace="ecommerce-prod"} |= "ERROR" [2m])) > 10
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Loki Alert: High ERROR Log Spike"
+        description: "More than 10 ERROR log lines detected in namespace ecommerce-prod within 2 minutes."
+
+    # 2. Critical Application Panic or Unhandled Exception
+    - alert: CriticalLogException
+      expr: sum(count_over_time({namespace="ecommerce-prod"} |~ "(?i)panic|exception|grpc unavailable" [2m])) > 0
+      for: 0m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Loki Alert: Application Panic or Fatal Error"
+        description: "Detected a critical panic, exception, or gRPC failure in application logs."
