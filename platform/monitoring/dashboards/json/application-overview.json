@@ -271,7 +271,11 @@
                   "spec": {
                     "options": {
                       "include": {
-                        "names": ["labels", "Time", "Line"]
+                        "names": [
+                          "labels",
+                          "Time",
+                          "Line"
+                        ]
                       }
                     }
                   }
@@ -430,7 +434,9 @@
                 "namePlacement": "auto",
                 "orientation": "horizontal",
                 "reduceOptions": {
-                  "calcs": ["lastNotNull"],
+                  "calcs": [
+                    "lastNotNull"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -502,7 +508,10 @@
                 "overrides": []
               },
               "options": {
-                "displayLabels": ["percent", "value"],
+                "displayLabels": [
+                  "percent",
+                  "value"
+                ],
                 "legend": {
                   "displayMode": "list",
                   "overflow": "ellipsis",
@@ -511,7 +520,9 @@
                 },
                 "pieType": "pie",
                 "reduceOptions": {
-                  "calcs": ["lastNotNull"],
+                  "calcs": [
+                    "lastNotNull"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -597,7 +608,9 @@
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": ["lastNotNull"],
+                  "calcs": [
+                    "lastNotNull"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -962,7 +975,9 @@
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": ["mean"],
+                  "calcs": [
+                    "mean"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -1041,7 +1056,9 @@
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": ["mean"],
+                  "calcs": [
+                    "mean"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -1244,7 +1261,9 @@
           "allowCustomValue": true,
           "current": {
             "text": "All",
-            "value": ["$__all"]
+            "value": [
+              "$__all"
+            ]
           },
           "definition": "label_values(grafana_build_info, job)",
           "hide": "dontHide",
@@ -1306,5 +1325,7 @@
         }
       }
     ]
-  }
+  },
+  "title": "Boutique Application Overview",
+  "uid": "boutique-app-overview-custom"
 }
