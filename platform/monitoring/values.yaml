@@ -1779,12 +1779,6 @@ grafana:
   ## Configure additional grafana datasources (passed through tpl)
   ## ref: https://grafana.com/docs/grafana/latest/administration/provisioning/#datasources
   additionalDataSources:
-  - name: Prometheus
-    uid: prometheus
-    type: prometheus
-    access: proxy
-    url: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
-    isDefault: true
 
   - name: Loki
     uid: loki
