@@ -6,22 +6,34 @@ metadata:
   namespace: argocd
 
 spec:
+  # Global image update behavior
   commonUpdateSettings:
     updateStrategy: newest-build
     ignoreTags:
-      - latest
+    - latest
 
+  # GitOps write-back
   writeBackConfig:
     method: git
     gitConfig:
       branch: main
       writeBackTarget: helmvalues
 
+  # Applications managed by this ImageUpdater
   applicationRefs:
-    - namePattern: "*"
+  - namePattern: "frontend"
 
-      labelSelectors:
-        matchLabels:
-          image-updater: "true"
+    labelSelectors:
+      matchLabels:
+        image-updater: "true"
 
-      useAnnotations: true
+    # Image configuration
+    images:
+    - alias: frontend
+      imageName: 333982363119.dkr.ecr.us-west-2.amazonaws.com/boutique-frontend
+
+      # Tell Image Updater which Helm values to modify
+      manifestTargets:
+        helm:
+          name: image.repository
+          tag: image.tag
