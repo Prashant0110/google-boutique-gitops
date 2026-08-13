@@ -1,8 +1,8 @@
 helm:
   parameters:
   - name: image.repository
-    value: prashantsapkota27/boutique-frontend
+    value: 333982363119.dkr.ecr.us-west-2.amazonaws.com/boutique-frontend
     forcestring: true
   - name: image.tag
-    value: latest
+    value: 7f680c8e
     forcestring: true
