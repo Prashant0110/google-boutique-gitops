@@ -1,47 +1,42 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
+
 metadata:
   name: google-boutique
   namespace: argocd
+
 spec:
   generators:
-    - git:
-        repoURL: https://github.com/Prashant0110/google-boutique-gitops.git
-        revision: main
-        directories:
-          - path: helm/apps/*
+  - git:
+      repoURL: https://github.com/Prashant0110/google-boutique-gitops.git
+      revision: main
+      directories:
+      - path: helm/apps/*
+
   template:
     metadata:
       name: "{{path.basename}}"
+
       labels:
         app.kubernetes.io/part-of: google-boutique
         image-updater: "true"
 
-      annotations:
-        # Which image to watch
-        argocd-image-updater.argoproj.io/image-list: "{{path.basename}}=333982363119.dkr.ecr.us-west-2.amazonaws.com/boutique-{{path.basename}}"
-        # GitOps write-back
-        argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-credentials
-
-        # Helm values to update
-        argocd-image-updater.argoproj.io/{{path.basename}}.helm.image-name: image.repository
-        argocd-image-updater.argoproj.io/{{path.basename}}.helm.image-tag: image.tag
-        # Update strategy
-        argocd-image-updater.argoproj.io/{{path.basename}}.update-strategy: newest-build
-        # Git branch to commit to
-        argocd-image-updater.argoproj.io/git-branch: main
     spec:
       project: default
+
       source:
         repoURL: https://github.com/Prashant0110/google-boutique-gitops.git
         targetRevision: main
         path: "{{path}}"
+
       destination:
         server: https://kubernetes.default.svc
         namespace: ecommerce-prod
+
       syncPolicy:
         automated:
           prune: true
           selfHeal: true
+
         syncOptions:
-          - CreateNamespace=true
+        - CreateNamespace=true
