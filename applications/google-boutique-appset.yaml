@@ -19,7 +19,7 @@ spec:
 
       annotations:
         # Which image to watch
-        argocd-image-updater.argoproj.io/image-list: "{{path.basename}}=prashantsapkota27/boutique-{{path.basename}}"
+        argocd-image-updater.argoproj.io/image-list: "{{path.basename}}=333982363119.dkr.ecr.us-west-2.amazonaws.com/boutique-{{path.basename}}"
         # GitOps write-back
         argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/git-credentials
 
