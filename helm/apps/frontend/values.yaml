@@ -2,7 +2,7 @@
 replicaCount: 1
 image:
   repository: 333982363119.dkr.ecr.us-west-2.amazonaws.com/boutique-frontend
-  tag: 7f680c8e
+  tag: 35038e1f
   pullPolicy: IfNotPresent
 service:
   type: ClusterIP
