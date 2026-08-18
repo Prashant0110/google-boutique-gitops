@@ -10,6 +10,11 @@ service:
   port: 50051
   targetPort: 50051
 
+serviceAccount:
+  create: true
+  name: paymentservice
+  automountServiceAccountToken: true
+
 containerEnvVars:
   - name: PORT
     value: "50051"
