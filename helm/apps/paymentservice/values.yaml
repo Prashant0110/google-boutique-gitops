@@ -15,6 +15,11 @@ serviceAccount:
   name: paymentservice
   automountServiceAccountToken: true
 
+podAnnotations:
+  vault.hashicorp.com/agent-inject: "true"
+  vault.hashicorp.com/role: "paymentservice"
+  vault.hashicorp.com/agent-inject-secret-payment-config: "secret/data/paymentservice/config"
+
 containerEnvVars:
   - name: PORT
     value: "50051"
