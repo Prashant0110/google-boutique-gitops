@@ -71,4 +71,23 @@ module "vault" {
   namespace = "ecommerce-prod"
 
   services = local.vault_services
+
+  database = {
+    enabled           = false
+    mount_path        = "database"
+    connection_name   = "rds-mysql"
+    address           = ""
+    port              = 3306
+    database_name     = ""
+    admin_username    = ""
+    admin_password    = ""
+    dynamic_role_name = "paymentservice-db"
+    default_ttl       = 3600
+    max_ttl           = 7200
+
+    creation_statements = [
+      "CREATE USER '{{name}}'@'%' IDENTIFIED BY '{{password}}';",
+      "GRANT SELECT, INSERT, UPDATE, DELETE ON boutique.* TO '{{name}}'@'%';"
+    ]
+  }
 }

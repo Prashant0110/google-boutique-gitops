@@ -4,9 +4,8 @@ module "ec2_ssm" {
   project     = "google-boutique"
   environment = "dev"
 
-  ssm_policy_arn = "arn:aws:iam::aws:policy/AcbXX3KgvqD7B8Y4WjCu6yNx1Prfu5cNHz"
-
-  ecr_read_policy_arn = "arn:aws:iam::aws:policy/AcbXX3KgvqD7B8Y4WjCu6yNx1Prfu5cNHz"
+  ssm_policy_arn      = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  ecr_read_policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
 moved {
