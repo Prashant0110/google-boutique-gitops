@@ -65,12 +65,34 @@ locals {
   }
 }
 
+
 module "vault" {
   source = "../../modules/vault"
 
   namespace = "ecommerce-prod"
 
   services = local.vault_services
+
+  token_ttl = 3600
+
+  # ----------------------------------------------------------
+  # Static application secrets - Vault KV v2
+  #
+  # No real secret values are committed to Terraform.
+  # Secrets are populated through an authenticated Vault
+  # bootstrap process / CI/CD process.
+  # ----------------------------------------------------------
+
+  kv_secrets = {}
+
+  # ----------------------------------------------------------
+  # Dynamic database credentials - Vault Database Secrets
+  # Engine
+  #
+  # Disabled for the free-tier/dev implementation.
+  # Production enables this configuration and supplies the
+  # database manager credentials securely.
+  # ----------------------------------------------------------
 
   database = {
     enabled           = false
@@ -82,8 +104,9 @@ module "vault" {
     admin_username    = ""
     admin_password    = ""
     dynamic_role_name = "paymentservice-db"
-    default_ttl       = 3600
-    max_ttl           = 7200
+
+    default_ttl = 3600
+    max_ttl     = 7200
 
     creation_statements = [
       "CREATE USER '{{name}}'@'%' IDENTIFIED BY '{{password}}';",

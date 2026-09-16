@@ -11,8 +11,7 @@ module "rds" {
   project     = "google-boutique"
   environment = "dev"
 
-  db_name = "boutique"
-
+  db_name  = "boutique"
   username = var.rds_username
   password = var.rds_password
 
@@ -20,6 +19,10 @@ module "rds" {
   allocated_storage = 20
 
   allowed_security_group_ids = [
-    module.security_group.security_group_id
+    module.security_group.ec2_security_group_id
   ]
+
+  backup_retention_period = 7
+  skip_final_snapshot     = false
+  deletion_protection     = true
 }

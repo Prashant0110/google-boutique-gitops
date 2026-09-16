@@ -51,3 +51,21 @@ variable "allowed_security_group_ids" {
   type        = list(string)
   default     = []
 }
+
+variable "backup_retention_period" {
+  description = "Number of days to retain automated RDS backups."
+  type        = number
+  default     = 7
+}
+
+variable "skip_final_snapshot" {
+  description = "Whether to skip the final snapshot when destroying the database."
+  type        = bool
+  default     = false
+}
+
+variable "deletion_protection" {
+  description = "Prevent accidental deletion of the RDS instance."
+  type        = bool
+  default     = true
+}

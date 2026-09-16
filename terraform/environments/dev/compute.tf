@@ -3,10 +3,10 @@ module "frontend_ec2" {
 
   instance_type = "t3.micro"
 
-  subnet_id = module.networking.public_subnet_1_id
+  subnet_id = module.networking.private_subnet_1_id
 
   security_group_ids = [
-    module.security_group.security_group_id
+    module.security_group.ec2_security_group_id
   ]
 
   user_data = file("${path.module}/scripts/ec2-init.sh")

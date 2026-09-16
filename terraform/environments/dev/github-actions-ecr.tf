@@ -1,80 +1,29 @@
-data "aws_iam_policy_document" "github_actions_assume_role" {
-  statement {
-    effect = "Allow"
+module "github_actions_ecr" {
+  source = "../../modules/github-actions-ecr"
 
-    actions = [
-      "sts:AssumeRoleWithWebIdentity"
-    ]
-
-    principals {
-      type = "Federated"
-
-      identifiers = [
-        aws_iam_openid_connect_provider.github.arn
-      ]
-    }
-
-    condition {
-      test     = "StringEquals"
-      variable = "token.actions.githubusercontent.com:aud"
-      values   = ["sts.amazonaws.com"]
-    }
-
-    condition {
-      test     = "StringEquals"
-      variable = "token.actions.githubusercontent.com:sub"
-      values = [
-        "repo:Prashant0110/online-boutique-app:ref:refs/heads/main"
-      ]
-    }
-  }
+  github_oidc_provider_arn = aws_iam_openid_connect_provider.github.arn
+  github_repository        = "Prashant0110/online-boutique-app"
+  github_branch            = "main"
+  ecr_repository_arn       = module.frontend_ecr.repository_arn
+  role_name                = "github-actions-ecr"
+  policy_name              = "github-actions-ecr-push"
 }
 
-resource "aws_iam_role" "github_actions_ecr" {
-  name = "github-actions-ecr"
-
-  assume_role_policy = data.aws_iam_policy_document.github_actions_assume_role.json
+moved {
+  from = aws_iam_role.github_actions_ecr
+  to   = module.github_actions_ecr.aws_iam_role.github_actions_ecr
 }
 
-data "aws_iam_policy_document" "github_actions_ecr" {
-  statement {
-    effect = "Allow"
-
-    actions = [
-      "ecr:GetAuthorizationToken"
-    ]
-
-    resources = ["*"]
-  }
-
-  statement {
-    effect = "Allow"
-
-    actions = [
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:CompleteLayerUpload",
-      "ecr:InitiateLayerUpload",
-      "ecr:PutImage",
-      "ecr:UploadLayerPart"
-    ]
-
-    resources = [
-      module.frontend_ecr.repository_arn
-    ]
-  }
+moved {
+  from = aws_iam_policy.github_actions_ecr
+  to   = module.github_actions_ecr.aws_iam_policy.github_actions_ecr
 }
 
-resource "aws_iam_policy" "github_actions_ecr" {
-  name = "github-actions-ecr-push"
-
-  policy = data.aws_iam_policy_document.github_actions_ecr.json
-}
-
-resource "aws_iam_role_policy_attachment" "github_actions_ecr" {
-  role       = aws_iam_role.github_actions_ecr.name
-  policy_arn = aws_iam_policy.github_actions_ecr.arn
+moved {
+  from = aws_iam_role_policy_attachment.github_actions_ecr
+  to   = module.github_actions_ecr.aws_iam_role_policy_attachment.github_actions_ecr
 }
 
 output "github_actions_ecr_role_arn" {
-  value = aws_iam_role.github_actions_ecr.arn
+  value = module.github_actions_ecr.role_arn
 }

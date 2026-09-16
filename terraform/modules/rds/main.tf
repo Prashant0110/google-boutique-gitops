@@ -51,6 +51,7 @@ resource "aws_db_instance" "this" {
   instance_class    = var.instance_class
   allocated_storage = var.allocated_storage
   storage_type      = "gp3"
+  storage_encrypted = true
 
   db_name  = var.db_name
   username = var.username
@@ -61,11 +62,9 @@ resource "aws_db_instance" "this" {
 
   publicly_accessible = false
 
-  backup_retention_period = 0
-
-  skip_final_snapshot = true
-
-  deletion_protection = false
+  backup_retention_period = var.backup_retention_period
+  skip_final_snapshot     = var.skip_final_snapshot
+  deletion_protection     = var.deletion_protection
 
   tags = {
     Name        = "${var.project}-${var.environment}-mysql"

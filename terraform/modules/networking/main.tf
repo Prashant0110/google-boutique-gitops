@@ -122,3 +122,85 @@ resource "aws_route_table_association" "public_2" {
   subnet_id      = aws_subnet.public_2.id
   route_table_id = aws_route_table.public.id
 }
+
+
+# ============================================================
+# PRIVATE ROUTE TABLES
+# ============================================================
+
+resource "aws_route_table" "private_1" {
+  vpc_id = aws_vpc.dev.id
+
+  tags = {
+    Name        = "${var.project}-${var.environment}-private-1-rt"
+    Environment = var.environment
+    Tier        = "private"
+    ManagedBy   = "terraform"
+  }
+}
+
+resource "aws_route_table" "private_2" {
+  vpc_id = aws_vpc.dev.id
+
+  tags = {
+    Name        = "${var.project}-${var.environment}-private-2-rt"
+    Environment = var.environment
+    Tier        = "private"
+    ManagedBy   = "terraform"
+  }
+}
+
+# ============================================================
+# PRIVATE ROUTE TABLE ASSOCIATIONS
+# ============================================================
+
+resource "aws_route_table_association" "private_1" {
+  subnet_id      = aws_subnet.private_1.id
+  route_table_id = aws_route_table.private_1.id
+}
+
+resource "aws_route_table_association" "private_2" {
+  subnet_id      = aws_subnet.private_2.id
+  route_table_id = aws_route_table.private_2.id
+}
+
+# ==================NAT==========================================
+
+# resource "aws_eip" "nat" {
+#   domain = "vpc"
+#
+#   tags = {
+#     Name        = "${var.project}-${var.environment}-nat-eip"
+#     Environment = var.environment
+#     ManagedBy   = "terraform"
+#   }
+# }
+
+# resource "aws_nat_gateway" "dev" {
+#   allocation_id = aws_eip.nat.id
+#   subnet_id     = aws_subnet.public_1.id
+#
+#   tags = {
+#     Name        = "${var.project}-${var.environment}-nat"
+#     Environment = var.environment
+#     ManagedBy   = "terraform"
+#   }
+# }
+
+# ============================================================
+# PRIVATE ROUTE -> NAT GATEWAY
+# ============================================================
+#
+# Enable these routes when the NAT Gateway above is enabled.
+#
+# resource "aws_route" "private_1_nat" {
+#   route_table_id         = aws_route_table.private_1.id
+#   destination_cidr_block = "0.0.0.0/0"
+#   nat_gateway_id         = aws_nat_gateway.dev.id
+# }
+#
+# resource "aws_route" "private_2_nat" {
+#   route_table_id         = aws_route_table.private_2.id
+#   destination_cidr_block = "0.0.0.0/0"
+#   nat_gateway_id         = aws_nat_gateway.dev.id
+# }

@@ -3,8 +3,10 @@ variable "namespace" {
   type        = string
 }
 
+
 variable "services" {
   description = "Application services requiring Vault Kubernetes authentication."
+
   type = map(object({
     service_account = string
     secret_path     = string
@@ -13,11 +15,17 @@ variable "services" {
   }))
 }
 
+
 variable "token_ttl" {
   description = "TTL in seconds for Vault Kubernetes authentication tokens."
   type        = number
   default     = 3600
 }
+
+
+# ============================================================
+# DYNAMIC DATABASE CREDENTIALS
+# ============================================================
 
 variable "database" {
   description = "Optional dynamic database credential configuration."
@@ -53,4 +61,18 @@ variable "database" {
   }
 
   sensitive = true
+}
+
+
+# ============================================================
+# STATIC APPLICATION SECRETS - KV v2
+# ============================================================
+
+variable "kv_secrets" {
+  description = "Static application secrets to store in Vault KV v2."
+
+  type = map(map(string))
+
+  default = {}
+
 }
