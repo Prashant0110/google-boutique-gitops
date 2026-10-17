@@ -1,3 +1,4 @@
+
 module "frontend_alb" {
   source = "../../modules/alb"
 
@@ -13,13 +14,13 @@ module "frontend_alb" {
 
   security_group_id = module.security_group.alb_security_group_id
 
-  target_id = module.frontend_ec2.instance_id
-
-  target_port   = 80
-  listener_port = 80
-
+  target_port       = 8080
+  listener_port     = 80
   health_check_path = "/"
-  certificate_arn   = ""
+
+  # HTTP forwards directly to the target group in this demo.
+  # Supply an ACM certificate ARN to enable HTTPS and redirect HTTP.
+  certificate_arn = ""
 }
 
 output "alb_dns_name" {

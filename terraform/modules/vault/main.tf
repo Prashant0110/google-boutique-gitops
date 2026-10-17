@@ -1,30 +1,64 @@
+
 # ============================================================
-# STATIC APPLICATION SECRETS - VAULT KV v2
+# VAULT AUDIT LOGGING
+# ============================================================
+
+resource "vault_audit" "audit" {
+  type        = "file"
+  path        = "file"
+  description = "Vault audit logging for security and operations"
+
+  options = {
+    file_path = var.audit_file_path
+  }
+}
+
+# ============================================================
+# KV V2 - STATIC APPLICATION SECRETS
 # ============================================================
 
 resource "vault_mount" "kv" {
-  path = "secret"
-  type = "kv"
+  path        = "secret"
+  type        = "kv"
+  description = "Static application secrets"
 
   options = {
     version = "2"
   }
-
-  description = "Static application secrets"
 }
 
 resource "vault_kv_secret_v2" "application" {
-  for_each = var.kv_secrets
+  for_each = nonsensitive(toset([
+    for secret_path, _ in var.kv_secrets : secret_path
+  ]))
 
   mount = vault_mount.kv.path
   name  = each.key
 
-  data_json = jsonencode(each.value)
+  data_json = jsonencode(var.kv_secrets[each.key])
 }
 
+# ============================================================
+# KUBERNETES AUTHENTICATION
+# ============================================================
+
+resource "vault_auth_backend" "kubernetes" {
+  type        = "kubernetes"
+  path        = "kubernetes"
+  description = "Kubernetes workload authentication"
+}
+
+resource "vault_kubernetes_auth_backend_config" "kubernetes" {
+  backend         = vault_auth_backend.kubernetes.path
+  kubernetes_host = var.kubernetes_host
+
+  # Vault runs inside Kubernetes. Allow Vault to use its
+  # mounted Kubernetes service-account token and CA.
+  disable_local_ca_jwt = false
+}
 
 # ============================================================
-# APPLICATION VAULT POLICIES
+# APPLICATION POLICIES - LEAST PRIVILEGE
 # ============================================================
 
 resource "vault_policy" "application" {
@@ -39,15 +73,14 @@ resource "vault_policy" "application" {
   EOT
 }
 
-
 # ============================================================
-# KUBERNETES AUTHENTICATION ROLES
+# KUBERNETES AUTH ROLES
 # ============================================================
 
 resource "vault_kubernetes_auth_backend_role" "application" {
   for_each = var.services
 
-  backend   = "kubernetes"
+  backend   = vault_auth_backend.kubernetes.path
   role_name = each.value.role_name
 
   bound_service_account_names = [
@@ -66,26 +99,25 @@ resource "vault_kubernetes_auth_backend_role" "application" {
   )
 
   token_ttl = var.token_ttl
+
+  # Ensure authentication configuration exists before roles.
+  depends_on = [
+    vault_kubernetes_auth_backend_config.kubernetes
+  ]
 }
 
-
 # ============================================================
-# DYNAMIC DATABASE SECRETS - VAULT DATABASE SECRETS ENGINE
+# DYNAMIC DATABASE CREDENTIALS
+# Disabled in the current dev environment.
 # ============================================================
 
 resource "vault_mount" "database" {
   count = var.database.enabled ? 1 : 0
 
-  path = var.database.mount_path
-  type = "database"
-
+  path        = var.database.mount_path
+  type        = "database"
   description = "Dynamic database credentials"
 }
-
-
-# ============================================================
-# MYSQL DATABASE CONNECTION
-# ============================================================
 
 resource "vault_database_secret_backend_connection" "mysql" {
   count = var.database.enabled ? 1 : 0
@@ -102,11 +134,6 @@ resource "vault_database_secret_backend_connection" "mysql" {
   }
 }
 
-
-# ============================================================
-# DYNAMIC DATABASE ROLE
-# ============================================================
-
 resource "vault_database_secret_backend_role" "application" {
   count = var.database.enabled ? 1 : 0
 
@@ -119,11 +146,6 @@ resource "vault_database_secret_backend_role" "application" {
   default_ttl = var.database.default_ttl
   max_ttl     = var.database.max_ttl
 }
-
-
-# ============================================================
-# DATABASE SECRET POLICY
-# ============================================================
 
 resource "vault_policy" "database_application" {
   count = var.database.enabled ? 1 : 0

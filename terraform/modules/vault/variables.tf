@@ -1,12 +1,11 @@
+
 variable "namespace" {
-  description = "Kubernetes namespace containing the application ServiceAccounts."
+  description = "Kubernetes namespace containing application ServiceAccounts."
   type        = string
 }
 
-
 variable "services" {
-  description = "Application services requiring Vault Kubernetes authentication."
-
+  description = "Application services and their Vault identities."
   type = map(object({
     service_account = string
     secret_path     = string
@@ -15,17 +14,30 @@ variable "services" {
   }))
 }
 
-
 variable "token_ttl" {
-  description = "TTL in seconds for Vault Kubernetes authentication tokens."
+  description = "TTL in seconds for Vault tokens issued through Kubernetes auth."
   type        = number
-  default     = 3600
+  default     = 2400
 }
 
+variable "kubernetes_host" {
+  description = "Kubernetes API address reachable from the Vault server."
+  type        = string
+  default     = "https://kubernetes.default.svc"
+}
 
-# ============================================================
-# DYNAMIC DATABASE CREDENTIALS
-# ============================================================
+variable "audit_file_path" {
+  description = "Vault audit output destination. Use stdout for the local lab."
+  type        = string
+  default     = "stdout"
+}
+
+variable "kv_secrets" {
+  description = "Optional static KV v2 secrets keyed by secret path."
+  type        = map(map(string))
+  default     = {}
+  sensitive   = true
+}
 
 variable "database" {
   description = "Optional dynamic database credential configuration."
@@ -55,24 +67,10 @@ variable "database" {
     admin_username      = ""
     admin_password      = ""
     dynamic_role_name   = "paymentservice-db"
-    default_ttl         = 3600
+    default_ttl         = 2400
     max_ttl             = 7200
     creation_statements = []
   }
 
   sensitive = true
-}
-
-
-# ============================================================
-# STATIC APPLICATION SECRETS - KV v2
-# ============================================================
-
-variable "kv_secrets" {
-  description = "Static application secrets to store in Vault KV v2."
-
-  type = map(map(string))
-
-  default = {}
-
 }

@@ -1,0 +1,34 @@
+global:
+  tlsDisable: true
+
+injector:
+  enabled: true
+
+server:
+  dataStorage:
+    enabled: true
+    size: 1Gi
+  ha:
+    enabled: true
+    raft:
+      enabled: true
+      replicas: 3
+    config: |
+      ui = true
+
+      listener "tcp" {
+        tls_disable = 1
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+      }
+
+      storage "raft" {
+        path = "/vault/data"
+      }
+
+      service_registration "kubernetes" {}
+
+      disable_mlock = true
+
+ui:
+  enabled: true

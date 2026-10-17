@@ -1,3 +1,4 @@
+
 variable "project" {
   description = "Project name used for resource naming and tagging."
   type        = string
@@ -16,6 +17,11 @@ variable "vpc_id" {
 variable "subnet_ids" {
   description = "Public subnet IDs where the internet-facing ALB is deployed."
   type        = list(string)
+
+  validation {
+    condition     = length(var.subnet_ids) >= 2
+    error_message = "Provide at least two subnet IDs for the ALB."
+  }
 }
 
 variable "security_group_id" {
@@ -23,21 +29,26 @@ variable "security_group_id" {
   type        = string
 }
 
-variable "target_id" {
-  description = "ID of the application instance registered with the target group."
-  type        = string
-}
-
 variable "target_port" {
-  description = "Port where the application receives traffic."
+  description = "Port where the frontend application receives traffic."
   type        = number
   default     = 80
+
+  validation {
+    condition     = var.target_port >= 1 && var.target_port <= 65535
+    error_message = "The target port must be between 1 and 65535."
+  }
 }
 
 variable "listener_port" {
-  description = "Port where the ALB listens for client traffic."
+  description = "Port where the ALB listens for HTTP client traffic."
   type        = number
   default     = 80
+
+  validation {
+    condition     = var.listener_port >= 1 && var.listener_port <= 65535
+    error_message = "The listener port must be between 1 and 65535."
+  }
 }
 
 variable "health_check_path" {
@@ -47,7 +58,7 @@ variable "health_check_path" {
 }
 
 variable "certificate_arn" {
-  description = "ARN of the ACM certificate used by the HTTPS listener."
+  description = "ACM certificate ARN for HTTPS. Empty disables the HTTPS listener."
   type        = string
   default     = ""
 }

@@ -1,3 +1,4 @@
+
 output "alb_id" {
   description = "ID of the Application Load Balancer."
   value       = aws_lb.this.id

@@ -1,13 +1,23 @@
 #---values---
+
 replicaCount: 1
+
 image:
   repository: 333982363119.dkr.ecr.us-west-2.amazonaws.com/boutique-frontend
   tag: 35038e1f
   pullPolicy: IfNotPresent
+
 service:
   type: ClusterIP
   port: 80
   targetPort: 8080
+
+ingress:
+  enabled: true
+  className: alb
+  host: assistant.example.com
+  certificateArn: ""
+
 config:
   PORT: "8080"
   PRODUCT_CATALOG_SERVICE_ADDR: "productcatalogservice:3550"
@@ -19,6 +29,7 @@ config:
   SHOPPING_ASSISTANT_SERVICE_ADDR: "shoppingassistantservice:8080"
   AD_SERVICE_ADDR: "adservice:9555"
   ENABLE_PROFILER: "0"
+
 resources:
   requests:
     cpu: 100m
@@ -26,3 +37,18 @@ resources:
   limits:
     cpu: 200m
     memory: 128Mi
+
+serviceAccount:
+  create: true
+  name: frontend
+  automountServiceAccountToken: false
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault

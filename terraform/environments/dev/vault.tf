@@ -73,7 +73,7 @@ module "vault" {
 
   services = local.vault_services
 
-  token_ttl = 3600
+  token_ttl = 2400
 
   # ----------------------------------------------------------
   # Static application secrets - Vault KV v2

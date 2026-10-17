@@ -7,11 +7,12 @@ metadata:
 
 spec:
   generators:
-  - git:
-      repoURL: https://github.com/Prashant0110/google-boutique-gitops.git
-      revision: main
-      directories:
-      - path: helm/apps/*
+    - git:
+        repoURL: https://github.com/Prashant0110/google-boutique-gitops.git
+        revision: feat/apex-assessment
+        directories:
+          - path: helm/apps/frontend
+          - path: helm/apps/paymentservice
 
   template:
     metadata:
@@ -26,7 +27,7 @@ spec:
 
       source:
         repoURL: https://github.com/Prashant0110/google-boutique-gitops.git
-        targetRevision: main
+        targetRevision: feat/apex-assessment
         path: "{{path}}"
 
       destination:
@@ -39,4 +40,4 @@ spec:
           selfHeal: true
 
         syncOptions:
-        - CreateNamespace=true
+          - CreateNamespace=true

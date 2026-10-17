@@ -1,33 +1,56 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   name: frontend
   labels:
     app: frontend
     component: frontend
     service: frontend
+
 spec:
   replicas: {{ .Values.replicaCount }}
+
   selector:
     matchLabels:
       app: frontend
+
   template:
     metadata:
       labels:
         app: frontend
         component: frontend
         service: frontend
+
     spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+
       containers:
         - name: frontend
+
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+          securityContext:
+            runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+            runAsUser: {{ .Values.securityContext.runAsUser }}
+            allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+
+            capabilities:
+              drop:
+                {{- toYaml .Values.securityContext.capabilities.drop | nindent 16 }}
+
+            seccompProfile:
+              type: {{ .Values.securityContext.seccompProfile.type }}
+
           ports:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
+
           envFrom:
             - configMapRef:
                 name: frontend-config
+
           readinessProbe:
             initialDelaySeconds: 10
             httpGet:
@@ -36,6 +59,7 @@ spec:
               httpHeaders:
                 - name: Cookie
                   value: shop_session-id=x-readiness-probe
+
           livenessProbe:
             initialDelaySeconds: 10
             httpGet:
@@ -44,10 +68,12 @@ spec:
               httpHeaders:
                 - name: Cookie
                   value: shop_session-id=x-liveness-probe
+
           resources:
             requests:
               cpu: {{ .Values.resources.requests.cpu }}
               memory: {{ .Values.resources.requests.memory }}
+
             limits:
               cpu: {{ .Values.resources.limits.cpu }}
               memory: {{ .Values.resources.limits.memory }}

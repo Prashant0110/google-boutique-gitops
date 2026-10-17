@@ -1,13 +1,11 @@
+
 resource "aws_lb" "this" {
   name               = "${var.project}-${var.environment}-alb"
   internal           = false
   load_balancer_type = "application"
 
-  security_groups = [
-    var.security_group_id
-  ]
-
-  subnets = var.subnet_ids
+  security_groups = [var.security_group_id]
+  subnets         = var.subnet_ids
 
   tags = {
     Name        = "${var.project}-${var.environment}-alb"
@@ -18,19 +16,18 @@ resource "aws_lb" "this" {
 }
 
 resource "aws_lb_target_group" "this" {
-  name     = "${var.project}-${var.environment}-frontend"
-  port     = var.target_port
-  protocol = "HTTP"
-
+  name        = "${var.project}-${var.environment}-frontend"
+  port        = var.target_port
+  protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "instance"
 
   health_check {
-    enabled  = true
-    protocol = "HTTP"
-    port     = var.target_port
-    path     = var.health_check_path
-
+    enabled             = true
+    protocol            = "HTTP"
+    port                = "traffic-port"
+    path                = var.health_check_path
+    matcher             = "200-399"
     healthy_threshold   = 2
     unhealthy_threshold = 3
     timeout             = 5
@@ -45,24 +42,24 @@ resource "aws_lb_target_group" "this" {
   }
 }
 
-resource "aws_lb_target_group_attachment" "this" {
-  target_group_arn = aws_lb_target_group.this.arn
-  target_id        = var.target_id
-  port             = var.target_port
-}
-
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.this.arn
-  port              = 80
+  port              = var.listener_port
   protocol          = "HTTP"
 
   default_action {
-    type = "redirect"
+    type = var.certificate_arn != "" ? "redirect" : "forward"
 
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
+    target_group_arn = var.certificate_arn == "" ? aws_lb_target_group.this.arn : null
+
+    dynamic "redirect" {
+      for_each = var.certificate_arn != "" ? [1] : []
+
+      content {
+        port        = "443"
+        protocol    = "HTTPS"
+        status_code = "HTTP_301"
+      }
     }
   }
 }
