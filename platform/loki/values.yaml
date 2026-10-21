@@ -1,3 +1,4 @@
+
 deploymentMode: SingleBinary
 
 singleBinary:
@@ -23,16 +24,28 @@ loki:
 
   schemaConfig:
     configs:
-    - from: "2024-01-01"
-      store: tsdb
-      object_store: filesystem
-      schema: v13
-      index:
-        prefix: loki_index_
-        period: 24h
+      - from: "2024-01-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
 
   limits_config:
     retention_period: 168h
+
+  rulerConfig:
+    rule_path: /tmp/loki/rules-temp
+    storage:
+      type: local
+      local:
+        directory: /rules
+    wal:
+      dir: /var/loki/ruler-wal
+    alertmanager_url: http://monitoring-kube-prometheus-alertmanager.monitoring.svc.cluster.local:9093
+    enable_api: true
+    enable_alertmanager_v2: true
 
 gateway:
   enabled: false
@@ -41,9 +54,47 @@ monitoring:
   selfMonitoring:
     enabled: false
 
+sidecar:
+  rules:
+    enabled: true
+    label: loki_rule
+    labelValue: "true"
+    folder: /rules/fake
+    searchNamespace: monitoring
+    resource: configmap
+
 ruler:
   enabled: true
-  alertmanager_url: http://monitoring-kube-prometheus-alertmanager.monitoring.svc.cluster.local:9093
-  enable_api: true
-  storage:
-    type: filesystem
+
+extraObjects:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: loki-alerting-rules
+      namespace: monitoring
+      labels:
+        loki_rule: "true"
+      annotations:
+        k8s-sidecar-target-directory: fake
+    data:
+      loki-alerts.yaml: |
+        groups:
+          - name: google-boutique-logs.rules
+            rules:
+              - alert: ErrorLogSpike
+                expr: sum(count_over_time({namespace="ecommerce-prod"} |= "ERROR" [2m])) > 10
+                for: 1m
+                labels:
+                  severity: critical
+                annotations:
+                  summary: "Loki Alert: High ERROR Log Spike"
+                  description: "More than 10 ERROR log lines detected in namespace ecommerce-prod within 2 minutes."
+
+              - alert: CriticalLogException
+                expr: sum(count_over_time({namespace="ecommerce-prod"} |~ "(?i)panic|exception|grpc unavailable" [2m])) > 0
+                for: 0m
+                labels:
+                  severity: critical
+                annotations:
+                  summary: "Loki Alert: Application Panic or Fatal Error"
+                  description: "Detected a critical panic, exception, or gRPC failure in application logs."
