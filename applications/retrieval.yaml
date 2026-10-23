@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: retrieval
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Prashant0110/google-boutique-gitops.git
+    targetRevision: feat/apex-assessment
+    path: platform/retrieval
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: retrieval
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
