@@ -21,7 +21,7 @@ spec:
           - $values/platform/tempo/values.yaml
 
     - repoURL: https://github.com/Prashant0110/google-boutique-gitops.git
-      targetRevision: HEAD
+      targetRevision: feat/apex-assessment
       ref: values
 
   syncPolicy:

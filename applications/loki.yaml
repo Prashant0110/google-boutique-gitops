@@ -17,7 +17,7 @@ spec:
           - $values/platform/loki/values.yaml
 
     - repoURL: https://github.com/Prashant0110/google-boutique-gitops.git
-      targetRevision: main
+      targetRevision: feat/apex-assessment
       ref: values
 
   destination:

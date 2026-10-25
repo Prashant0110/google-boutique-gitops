@@ -1,6 +1,16 @@
 config:
   clients:
-    - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
-
+  - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+  snippets:
+    scrapeConfigs: "- job_name: kubernetes-pods-ecommerce\n  pipeline_stages:\n  \
+      \  - cri: {}\n  kubernetes_sd_configs:\n    - role: pod\n      namespaces:\n\
+      \        names:\n          - ecommerce-prod\n  relabel_configs:\n    - source_labels:\
+      \ [__meta_kubernetes_pod_node_name]\n      target_label: node_name\n    - source_labels:\
+      \ [__meta_kubernetes_namespace]\n      target_label: namespace\n    - source_labels:\
+      \ [__meta_kubernetes_pod_name]\n      target_label: pod\n    - source_labels:\
+      \ [__meta_kubernetes_pod_container_name]\n      target_label: container\n  \
+      \  - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]\n\
+      \      separator: /\n      replacement: /var/log/pods/*$1/*.log\n      target_label:\
+      \ __path__\n"
 serviceMonitor:
   enabled: true

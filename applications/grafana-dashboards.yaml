@@ -10,7 +10,7 @@ spec:
     namespace: monitoring
   source:
     repoURL: https://github.com/Prashant0110/google-boutique-gitops.git
-    targetRevision: HEAD
+    targetRevision: feat/apex-assessment
     path: platform/monitoring/dashboards/configmaps
   syncPolicy:
     automated:

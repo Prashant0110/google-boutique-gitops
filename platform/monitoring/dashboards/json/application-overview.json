@@ -24,7 +24,17 @@
       "2h",
       "1d"
     ],
-    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"],
+    "time_options": [
+      "5m",
+      "15m",
+      "1h",
+      "6h",
+      "12h",
+      "24h",
+      "2d",
+      "7d",
+      "30d"
+    ],
     "hidden": false
   },
   "refresh": "",
@@ -67,7 +77,9 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": ["mean"],
+          "calcs": [
+            "mean"
+          ],
           "fields": "",
           "values": false
         },
@@ -83,7 +95,7 @@
             "type": "prometheus",
             "uid": "$datasource"
           },
-          "expr": "grafana_alerting_result_total{job=~\"$job\", instance=~\"$instance\", state=\"alerting\"}",
+          "expr": "sum(ALERTS{alertstate=\"firing\"}) or vector(0)",
           "instant": true,
           "interval": "1m",
           "legendFormat": ""
@@ -133,7 +145,9 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": ["mean"],
+          "calcs": [
+            "mean"
+          ],
           "fields": "",
           "values": false
         },
@@ -359,9 +373,9 @@
             "type": "prometheus",
             "uid": "$datasource"
           },
-          "expr": "sum by (status_code) (irate(grafana_http_request_duration_seconds_count{job=~\"$job\", instance=~\"$instance\"}[1m])) ",
+          "expr": "sum by (status) (rate(http_requests_total{namespace=\"ecommerce-prod\",pod=~\"frontend-.*\"}[5m]))",
           "interval": "1m",
-          "legendFormat": "{{status_code}}"
+          "legendFormat": "{{status}}"
         }
       ],
       "transformations": [],
@@ -467,7 +481,7 @@
             "uid": "$datasource"
           },
           "exemplar": true,
-          "expr": "histogram_quantile(0.99, sum(irate(grafana_http_request_duration_seconds_bucket{instance=~\"$instance\", job=~\"$job\"}[$__rate_interval])) by (le)) * 1",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{namespace=\"ecommerce-prod\",pod=~\"frontend-.*\"}[5m]))) * 1000",
           "interval": "1m",
           "legendFormat": "99th Percentile"
         },
@@ -478,7 +492,7 @@
             "uid": "$datasource"
           },
           "exemplar": true,
-          "expr": "histogram_quantile(0.50, sum(irate(grafana_http_request_duration_seconds_bucket{instance=~\"$instance\", job=~\"$job\"}[$__rate_interval])) by (le)) * 1",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_request_duration_seconds_bucket{namespace=\"ecommerce-prod\",pod=~\"frontend-.*\"}[5m]))) * 1000",
           "interval": "1m",
           "legendFormat": "50th Percentile"
         },
@@ -489,7 +503,7 @@
             "uid": "$datasource"
           },
           "exemplar": true,
-          "expr": "sum(irate(grafana_http_request_duration_seconds_sum{instance=~\"$instance\", job=~\"$job\"}[$__rate_interval])) * 1 / sum(irate(grafana_http_request_duration_seconds_count{instance=~\"$instance\", job=~\"$job\"}[$__rate_interval]))",
+          "expr": "(sum(rate(http_request_duration_seconds_sum{namespace=\"ecommerce-prod\",pod=~\"frontend-.*\"}[5m])) / sum(rate(http_request_duration_seconds_count{namespace=\"ecommerce-prod\",pod=~\"frontend-.*\"}[5m]))) * 1000",
           "interval": "1m",
           "legendFormat": "Average"
         }
@@ -634,7 +648,11 @@
           "id": "filterFieldsByName",
           "options": {
             "include": {
-              "names": ["labels", "Time", "Line"]
+              "names": [
+                "labels",
+                "Time",
+                "Line"
+              ]
             }
           }
         }
@@ -694,7 +712,9 @@
         "namePlacement": "auto",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -752,7 +772,10 @@
         "overrides": []
       },
       "options": {
-        "displayLabels": ["percent", "value"],
+        "displayLabels": [
+          "percent",
+          "value"
+        ],
         "legend": {
           "displayMode": "list",
           "overflow": "ellipsis",
@@ -761,7 +784,9 @@
         },
         "pieType": "pie",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -781,7 +806,7 @@
           },
           "editorMode": "code",
           "expr": "sum(container_memory_working_set_bytes{namespace=\"ecommerce-prod\", container!=\"\"}) by (pod)",
-          "legendFormat": "{{pods}}",
+          "legendFormat": "{{pod}}",
           "range": true
         }
       ],
@@ -833,7 +858,9 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -890,7 +917,9 @@
         "skipUrlSync": false,
         "current": {
           "text": "All",
-          "value": ["$__all"]
+          "value": [
+            "$__all"
+          ]
         },
         "options": [],
         "type": "query",
