@@ -13,7 +13,7 @@ module "rds" {
 
   db_name  = "boutique"
   username = var.rds_username
-  password = var.rds_password
+
 
   instance_class    = "db.t3.micro"
   multi_az          = true

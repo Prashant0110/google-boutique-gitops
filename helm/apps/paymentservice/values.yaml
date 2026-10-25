@@ -1,9 +1,9 @@
 replicaCount: 1
 
 image:
-  repository: us-central1-docker.pkg.dev/google-samples/microservices-demo/paymentservice
-  tag: v0.10.2
-  pullPolicy: IfNotPresent
+  repository: 333982363119.dkr.ecr.us-west-2.amazonaws.com/boutique-paymentservice
+# TODO: Replace with the actual image tag after CI builds and pushes to ECR.
+  tag: REPLACE_WITH_BUILT_GIT_SHA
 
 service:
   type: ClusterIP

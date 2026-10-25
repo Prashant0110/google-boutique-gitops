@@ -18,9 +18,3 @@ variable "rds_username" {
   type        = string
   sensitive   = true
 }
-
-variable "rds_password" {
-  description = "Initial master password for the development RDS instance."
-  type        = string
-  sensitive   = true
-}
