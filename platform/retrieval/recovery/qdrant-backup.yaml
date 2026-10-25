@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qdrant-recovery-config
+  namespace: retrieval
+data:
+  AWS_REGION: "REPLACE_WITH_APPROVED_AWS_REGION"
+  S3_BUCKET: "REPLACE_WITH_TERRAFORM_RECOVERY_BUCKET_OUTPUT"
+  S3_PREFIX: "qdrant"
+  QDRANT_URL: "http://qdrant.retrieval.svc.cluster.local:6333"
+  QDRANT_COLLECTION: "knowledge"
+  S3_KMS_KEY_ARN: "REPLACE_WITH_TERRAFORM_RECOVERY_KMS_KEY_ARN"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: qdrant-backup
+  namespace: retrieval
+  annotations:
+    # For EKS, replace with terraform output recovery_irsa_role_arn.
+    # KinD ignores IRSA; use a temporary least-privilege local AWS identity.
+    eks.amazonaws.com/role-arn: "REPLACE_WITH_DEDICATED_BACKUP_IRSA_ROLE_ARN"
+automountServiceAccountToken: true
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: qdrant-backup
+  namespace: retrieval
+spec:
+  schedule: "0 2 * * *"
+  timeZone: "Etc/UTC"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  suspend: true
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: qdrant-backup
+        spec:
+          restartPolicy: Never
+          serviceAccountName: qdrant-backup
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: backup
+              image: "REPLACE_WITH_ECR_URI/apex-recovery-tools:1.0.0"
+              imagePullPolicy: IfNotPresent
+              args: ["backup"]
+              envFrom:
+                - configMapRef:
+                    name: qdrant-recovery-config
+              env:
+                - name: AWS_DEFAULT_REGION
+                  valueFrom:
+                    configMapKeyRef:
+                      name: qdrant-recovery-config
+                      key: AWS_REGION
+                # Optional for KinD testing. Create this Secret out of band.
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: recovery-aws-credentials
+                      key: AWS_ACCESS_KEY_ID
+                      optional: true
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: recovery-aws-credentials
+                      key: AWS_SECRET_ACCESS_KEY
+                      optional: true
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir:
+                sizeLimit: 4Gi

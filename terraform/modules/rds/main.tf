@@ -1,6 +1,9 @@
-resource "aws_db_subnet_group" "this" {
-  name = "${var.project}-${var.environment}-db-subnet-group"
+resource "random_id" "final_snapshot_suffix" {
+  byte_length = 4
+}
 
+resource "aws_db_subnet_group" "this" {
+  name       = "${var.project}-${var.environment}-db-subnet-group"
   subnet_ids = var.subnet_ids
 
   tags = {
@@ -10,7 +13,6 @@ resource "aws_db_subnet_group" "this" {
     ManagedBy   = "terraform"
   }
 }
-
 
 resource "aws_security_group" "this" {
   name        = "${var.project}-${var.environment}-rds-sg"
@@ -41,7 +43,6 @@ resource "aws_security_group" "this" {
   }
 }
 
-
 resource "aws_db_instance" "this" {
   identifier = "${var.project}-${var.environment}-mysql"
 
@@ -59,12 +60,14 @@ resource "aws_db_instance" "this" {
 
   db_subnet_group_name   = aws_db_subnet_group.this.name
   vpc_security_group_ids = [aws_security_group.this.id]
+  publicly_accessible    = false
 
-  publicly_accessible = false
-
-  backup_retention_period = var.backup_retention_period
-  skip_final_snapshot     = var.skip_final_snapshot
-  deletion_protection     = var.deletion_protection
+  multi_az                  = var.multi_az
+  backup_retention_period   = var.backup_retention_period
+  copy_tags_to_snapshot     = true
+  skip_final_snapshot       = var.skip_final_snapshot
+  final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.project}-${var.environment}-mysql-final-${random_id.final_snapshot_suffix.hex}"
+  deletion_protection       = var.deletion_protection
 
   tags = {
     Name        = "${var.project}-${var.environment}-mysql"

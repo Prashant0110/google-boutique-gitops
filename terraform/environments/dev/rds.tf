@@ -16,6 +16,7 @@ module "rds" {
   password = var.rds_password
 
   instance_class    = "db.t3.micro"
+  multi_az          = true
   allocated_storage = 20
 
   allowed_security_group_ids = [

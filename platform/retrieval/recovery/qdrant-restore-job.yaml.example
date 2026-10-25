@@ -1,0 +1,71 @@
+# Manual recovery only. Review the snapshot key and approve the restore before applying.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: qdrant-restore-manual
+  namespace: retrieval
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: qdrant-restore
+    spec:
+      restartPolicy: Never
+      serviceAccountName: qdrant-backup
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: restore
+          image: "REPLACE_WITH_ECR_URI/apex-recovery-tools:1.0.0"
+          imagePullPolicy: IfNotPresent
+          args:
+            - restore
+            - --s3-key
+            - "REPLACE_WITH_EXACT_QDRANT_SNAPSHOT_S3_KEY"
+          envFrom:
+            - configMapRef:
+                name: qdrant-recovery-config
+          env:
+            - name: AWS_DEFAULT_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: qdrant-recovery-config
+                  key: AWS_REGION
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: recovery-aws-credentials
+                  key: AWS_ACCESS_KEY_ID
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: recovery-aws-credentials
+                  key: AWS_SECRET_ACCESS_KEY
+                  optional: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 4Gi

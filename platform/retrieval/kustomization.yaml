@@ -6,3 +6,4 @@ resources:
   - namespace.yaml
   - qdrant.yaml
   - retrieval-service.yaml
+  - recovery/qdrant-backup.yaml

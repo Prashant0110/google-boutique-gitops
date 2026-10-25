@@ -69,3 +69,8 @@ variable "deletion_protection" {
   type        = bool
   default     = true
 }
+variable "multi_az" {
+  description = "Deploy RDS as a Multi-AZ DB instance for availability."
+  type        = bool
+  default     = false
+}
