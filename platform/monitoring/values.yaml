@@ -372,7 +372,7 @@ additionalPrometheusRulesMap:
           description: "No user traffic detected during the last 2 minutes."
 
       - alert: FrontendScrapeTargetDown
-        expr: up{job="frontend"} == 0
+        expr: up{job="frontend"} == 0 OR absent(up{job="frontend"})
         for: 2m
         labels:
           severity: critical
