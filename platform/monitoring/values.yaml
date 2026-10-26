@@ -371,6 +371,16 @@ additionalPrometheusRulesMap:
           summary: "Frontend No Traffic"
           description: "No user traffic detected during the last 2 minutes."
 
+      - alert: FrontendScrapeTargetDown
+        expr: up{job="frontend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: frontend
+        annotations:
+          summary: "Frontend Scrape Target Down"
+          description: "Prometheus has been unable to scrape the frontend target for 2 minutes."
+
       - alert: FrontendHighRequestRate
         expr: |
           sum(rate(http_requests_total{path!="/metrics",path!="/_healthz"}[1m])) > 2
