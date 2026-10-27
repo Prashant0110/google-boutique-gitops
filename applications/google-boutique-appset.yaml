@@ -20,7 +20,6 @@ spec:
 
       labels:
         app.kubernetes.io/part-of: google-boutique
-        image-updater: "true"
 
     spec:
       project: default
