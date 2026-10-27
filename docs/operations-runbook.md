@@ -1,317 +1,199 @@
-# Apex Retrieval Platform — Operations Runbook
+# Apex Retrieval Platform: Operations Runbook
+
+**Owner:** Prashant Raj Sapkota (pilot). In a customer deployment the platform owner, on-call owner and security reviewer are named in the customer RACI at kickoff.
 
 ## 1. Overview
 
-This runbook describes the operational procedures for the Apex retrieval
-platform, including service health checks, incident investigation, deployment
-rollback, data backup and restoration, secret management, monitoring, and
-disaster recovery.
+This runbook describes how to operate the Apex platform: service health checks, incident investigation, deployment rollback, backup and restoration, secrets, monitoring, disaster recovery, cost controls and handover.
 
-The retrieval service provides authenticated document ingestion and semantic
-search using a CPU-based embedding model and Qdrant vector storage. The
-Kubernetes configuration defines two API replicas and a single Qdrant replica
-with persistent storage. Vault is configured to provide the API key to the
-retrieval service.
+The platform has two parts:
 
-The infrastructure repository also contains Terraform modules for AWS
-networking, compute, storage, IAM, container registries, Vault, and monitoring
-integrations.
+- **Kubernetes pilot (KinD cluster `apex-kind`, three nodes).** Argo CD, Helm applications (`frontend`, `paymentservice`), the retrieval service with Qdrant, Vault (3-node Raft with TLS), Prometheus, Alertmanager, Grafana, Loki, Promtail, the OpenTelemetry Collector and Tempo. This part was run and tested with synthetic data.
+- **AWS reference design (Terraform).** VPC, ALB, Auto Scaling, RDS, S3, ECR, CloudTrail, IAM and OIDC, Vault and recovery modules. `terraform fmt` and `terraform validate` pass. `terraform apply` is the activation step, performed when the target AWS account is attached.
 
-The current Kubernetes environment is KinD. The Terraform configuration
-defines an AWS deployment foundation, but the live AWS infrastructure could
-not be inspected because AWS credentials were unavailable during this
-assessment.
+Architecture diagrams are in `diagrams/` (start with `00-full-architecture`).
 
 ## 2. Current deployment
 
 ### Retrieval API
 
-The retrieval API is deployed in the `retrieval` namespace. Its Kubernetes
-Deployment defines two replicas and includes startup, readiness, and liveness
-probes. The container runs as a non-root user, uses a read-only root
-filesystem, drops Linux capabilities, and has CPU and memory requests and
-limits configured.
+Deployed in namespace `retrieval` with two replicas, startup, readiness and liveness probes, a non-root user, a read-only root filesystem, dropped Linux capabilities, and CPU and memory requests and limits.
 
-The service exposes the following endpoints:
+Endpoints:
 
-- `GET /healthz` — checks application health.
-- `GET /readyz` — checks whether the application is ready to serve requests.
-- `POST /v1/documents` — accepts authenticated document ingestion requests.
-- `POST /v1/search` — performs authenticated semantic searches.
+- `GET /healthz`: application health.
+- `GET /readyz`: readiness to serve requests.
+- `POST /v1/documents`: authenticated document ingestion.
+- `POST /v1/search`: authenticated semantic search.
 
-Local tests previously passed for health checks, readiness, API-key
-authentication, document ingestion, and semantic search.
+Local tests passed for health, readiness, API-key authentication, ingestion and semantic search.
 
 ### Qdrant
 
-Qdrant is deployed as a single-replica StatefulSet with a 10 GiB persistent
-volume claim. It stores the vectors used by the retrieval API.
-
-The persistent volume protects data against some container and pod failures,
-but it does not provide independent backup or high availability. A node or
-storage failure may require recovery from a separate backup.
+Qdrant 1.13.3 runs as a single-replica StatefulSet with a 10 GiB persistent volume. The `knowledge` collection (384 dimensions, Cosine) holds the retrieval vectors. The volume protects against some pod failures but is not a backup, so a node or storage failure is recovered from a snapshot (section 5).
 
 ### Vault
 
-Vault is configured with Kubernetes authentication for the retrieval service.
-The `retrieval` role is associated with the `retrieval-api` service account
-and has a policy granting read access to the retrieval configuration secret.
+Vault runs as three nodes with integrated Raft storage and TLS. Kubernetes authentication binds a Vault role to each service's ServiceAccount, with a per-service policy on `secret/data/SERVICE/config`. A sample-password write, update and read lifecycle was tested on the pilot. Injection of the API key into the retrieval pods is the next item to verify end to end (section 7).
 
-During the previous deployment checks, the retrieval API pods did not contain
-the expected Vault Agent container or injected API-key file. Secret injection
-therefore remains unresolved and must be corrected before relying on Vault
-in production.
+### Frontend and payment service
 
-### AWS infrastructure
-
-The Terraform configuration defines an application S3 bucket with public
-access blocking, versioning, and KMS encryption with key rotation. A separate
-CloudTrail module defines audit-log storage.
-
-The AWS account and resources could not be inspected during the assessment
-because the AWS CLI had no configured credentials. The existence and current
-configuration of these resources must be confirmed when authorized AWS access
-is available.
+`frontend` and `paymentservice` are delivered through the GitHub Actions workflow, a promotion pull request in the GitOps repository, and an Argo CD ApplicationSet with automated sync (`prune` and `selfHeal`) into namespace `ecommerce-prod`.
 
 ## 3. Health checks and incident investigation
 
-Start an investigation by checking the Kubernetes context, workload status,
-recent events, and application logs.
+![Incident triage](../diagrams/png/09-incident-triage.png)
+
+Start by checking the Kubernetes context, workload status, events and logs.
 
 ```bash
 kubectl config current-context
+kubectl -n argocd get applications
+kubectl -n ecommerce-prod get deploy,pods,svc
 kubectl -n retrieval get deployments,pods,services,pvc
 kubectl -n retrieval get events --sort-by=.lastTimestamp
-kubectl -n retrieval rollout status deployment/retrieval-api
-kubectl -n retrieval logs deployment/retrieval-api \
-  --all-containers=true --tail=100
+kubectl -n retrieval logs deployment/retrieval-api --all-containers=true --tail=100
+kubectl -n retrieval logs qdrant-0 --tail=100
+kubectl -n monitoring get pods
 kubectl -n vault get pods
 ```
 
-Check Qdrant separately:
+If a command targets an unexpected cluster or namespace, verify the context before proceeding.
 
-```bash
-kubectl -n retrieval logs qdrant-0 --tail=100
-kubectl -n retrieval describe pod qdrant-0
-kubectl -n retrieval get pvc
-```
+### Service unavailable or returning errors
 
-If a command targets an unexpected cluster or namespace, verify the context
-before proceeding.
+1. Check Argo CD sync state and pod readiness, restarts and events.
+2. Check Prometheus and Grafana: error rate, latency, traffic, `up` for the target.
+3. Check Loki logs and Tempo traces for the affected time window.
+4. Confirm Qdrant is running and its volume is bound.
+5. Check whether the workload can read its secret from Vault.
+6. Review recent changes in the GitOps repository.
+7. Apply the corrective change through the GitOps workflow.
+8. Verify health, readiness, authenticated ingestion and search.
 
-### API unavailable or returning errors
-
-Investigate the following in order:
-
-1. Check pod readiness, restart counts, recent events, and application logs.
-2. Confirm that Qdrant is running and its persistent volume is bound.
-3. Check whether the API can access the required secret.
-4. Review CPU and memory pressure and recent deployment changes.
-5. Check monitoring data for changes in request volume, latency, or errors.
-6. Apply the appropriate corrective change through the deployment workflow.
-7. Verify health, readiness, authenticated ingestion, and semantic search.
-
-Initial troubleshooting should focus on logs, workload status, dependencies,
-and recent changes before considering actions that could affect persistent
-data.
+Investigate logs, workload status, dependencies and recent changes before any action that could affect persistent data.
 
 ## 4. Deployment rollback
 
-Git is the source of truth for GitOps-managed workloads. A rollback should
-restore the last known-good application or configuration revision through
-the approved GitOps workflow.
+Git is the source of truth. A rollback restores the last known-good image tag through a reviewed pull request.
 
-1. Identify the change associated with the incident.
-2. Review the previous known-good revision.
-3. Revert the faulty change in a dedicated Git commit.
-4. Follow the approved Argo CD synchronization process.
-5. Confirm that the rollout completes successfully.
-6. Test health, readiness, authenticated search, and application logs.
-7. Record the cause of the incident and the corrective action.
-
-Useful inspection commands:
+1. Identify the change associated with the incident and the last known-good commit SHA.
+2. Run the **Manual GitOps Rollback** workflow (`rollback.yml`) with inputs `service` and `previous_image_tag`. The workflow validates the tag format, checks the image exists in ECR, and opens a rollback pull request in the GitOps repository.
+3. Review and merge the pull request. Argo CD reconciles the cluster to the merged state.
+4. Confirm the rollout completes and test health, readiness, and logs.
+5. Record the cause and the corrective action.
 
 ```bash
-kubectl -n retrieval rollout history deployment/retrieval-api
-kubectl -n retrieval rollout status deployment/retrieval-api
+kubectl -n ecommerce-prod rollout status deployment/frontend
+kubectl -n argocd get applications
 ```
 
-A direct `kubectl rollout undo` is not the normal rollback mechanism for a
-GitOps-managed deployment because Argo CD may reconcile the workload back to
-the state declared in Git. Use a direct rollback only as an approved emergency
-measure, followed by reconciliation of the Git repository.
+A direct `kubectl rollout undo` is not the normal path for a GitOps-managed workload, because Argo CD (self-heal enabled) restores the state declared in Git. Use it only as an approved emergency measure, followed by reconciling Git. Likewise, to scale a deployment down for testing, pause Argo CD sync first.
 
-Rolling back an application deployment does not restore Qdrant data or reverse
-changes already made to stored documents.
+Rolling back an application does not restore Qdrant data or reverse changes already made to stored documents.
 
 ## 5. Qdrant backup strategy
 
-Production backups must be independent of the Qdrant persistent volume and
-stored outside the cluster.
+Backups are independent of the Qdrant volume and stored outside the cluster.
 
-The planned backup process is:
-
-1. Create a snapshot using a Qdrant-supported snapshot mechanism.
-2. Transfer the snapshot to private S3 storage.
-3. Use server-side encryption, restricted access, versioning, and an approved
-   retention policy.
-4. Record the backup timestamp and the Qdrant version.
-5. Monitor backup execution and report failures.
-6. Periodically restore a snapshot into an isolated environment and validate
-   the recovered collection.
-
-The existing Terraform S3 module provides a starting point for encrypted,
-versioned storage. A dedicated backup prefix or a separate bucket should be
-selected according to the required access and retention policies.
-
-Production workloads should access S3 through an appropriate IAM workload
-identity, such as EKS Pod Identity or IAM Roles for Service Accounts (IRSA)
-when using EKS. Long-lived AWS credentials should not be embedded in Kubernetes
-manifests, container images, or source control.
-
-The backup schedule, S3 upload mechanism, IAM permissions, and retention
-configuration have not yet been implemented and tested end to end. AWS access
-was unavailable during the assessment, so a successful S3 upload has not been
-demonstrated.
+1. A CronJob (`platform/retrieval/recovery/qdrant-backup.yaml`) runs daily at `02:00` and uses `recovery-tools/` to create a Qdrant snapshot and upload it to S3.
+2. The S3 bucket (Terraform `recovery` module) uses KMS encryption, versioning, public access blocking, a TLS-only policy, 90-day expiry for current objects and 30-day expiry for non-current versions.
+3. Production access to S3 uses IAM workload identity (IRSA or EKS Pod Identity). Long-lived AWS credentials are never placed in manifests, images or source control.
+4. The CronJob ships suspended until its image, bucket, KMS key and role values are filled in. Run a one-off job first (see `recovery-runbook.md`), then enable the schedule.
+5. Record the backup timestamp and the Qdrant version, and alert on a failed backup or a stale latest backup (target: no older than 26 hours).
 
 A persistent volume alone is not a backup.
 
 ## 6. Qdrant restoration
 
-Restoration should first be tested in an isolated environment rather than
-against production data.
+Restore into an isolated target first. See `recovery-runbook.md` for the full procedure.
 
-1. Identify the snapshot and confirm its timestamp, collection, and Qdrant
-   version.
-2. Verify that the backup object is accessible and intact.
-3. Follow the supported restoration procedure for the deployed Qdrant version.
-4. Check the restored collection configuration and vector count.
-5. Run representative semantic searches through the retrieval API.
-6. Confirm API readiness and inspect application and Qdrant logs.
-7. Record the restoration duration and any data loss.
+A restore drill was completed locally on a dedicated `restore-drill` collection: snapshot created (164352 bytes, SHA-256 recorded), collection deleted, snapshot recovered, and both points verified. The API times were about 0.093 s for the snapshot and 0.203 s for the recovery. Those numbers come from a two-point collection and show the procedure works. They are not an RTO. A timed restore at realistic data volume sets the production RTO.
 
-Before production restoration, confirm the target environment and obtain the
-necessary approval. Do not overwrite production data as part of an untested
-recovery procedure.
-
-A restoration drill has not yet been completed, so recovery time and data
-recovery guarantees have not been established.
+Before any production restore, confirm the target environment and obtain approval.
 
 ## 7. Vault troubleshooting
 
-Vault Agent injection did not work as expected during the previous Kubernetes
-checks. The retrieval API pods lacked the expected injected secret file and
-Vault Agent container.
-
-The investigation should cover:
+If Vault Agent injection does not produce the expected sidecar or secret file in a pod, investigate:
 
 - Vault injector pod health and logs.
 - Admission webhook configuration and TLS certificate validity.
-- Retrieval pod annotations and service account configuration.
-- Vault Kubernetes authentication role bindings.
-- Vault policy permissions and the secret path.
+- Pod annotations and ServiceAccount configuration.
+- Vault Kubernetes auth role bindings.
+- Vault policy permissions and the secret path (`secret/data/SERVICE/config`).
 - Vault Agent authentication and template-rendering errors.
 
-Verify the existence and permissions of secret files without printing their
-contents. TLS verification should remain enabled while diagnosing certificate
-problems.
+Check that secret files exist and have the right permissions without printing their contents. Keep TLS verification enabled while diagnosing certificate problems.
 
-A Vault root token was exposed during earlier troubleshooting and must be
-treated as compromised. It should be revoked or rotated through an authorized
-secure administrative session. Tokens, unseal shares, API keys, and rendered
-secret files must not be included in the repository or submission archive.
-
-Vault injection must be corrected and tested before the service relies on it
-for production secret delivery.
+**Token hygiene.** A root token used during local troubleshooting is treated as compromised and revoked after use (`vault token revoke`). Production access uses Kubernetes auth and short-lived tokens. Tokens, unseal shares, API keys and rendered secret files are never committed to the repository or the submission archive. `scripts/vault-unseal.sh` reads unseal keys interactively and stores nothing.
 
 ## 8. Monitoring and alerting
 
-The repository contains an existing monitoring stack that should be reused
-where practical.
+![Observability](../diagrams/png/06-observability-and-alerting.png)
 
-The retrieval platform should be monitored for:
+### Alerts in place (Prometheus rule group `boutique.rules`)
 
-- API availability and readiness failures.
-- Request latency and HTTP error rates.
-- Pod restarts and CPU or memory pressure.
-- Qdrant availability and persistent-volume capacity.
-- Vault authentication and secret-injection failures.
-- Backup job failures and the age of the latest successful backup.
-- Storage growth, infrastructure usage, and AWS costs.
+| Alert | Severity | For | Signal |
+|---|---|---|---|
+| `FrontendScrapeTargetDown` | critical | 2m | `up{job="frontend"} == 0 or absent(up{job="frontend"})` |
+| `FrontendHighErrorRate` | critical | 1m | Elevated 5xx ratio |
+| `FrontendNoTraffic` | warning | 2m | No request activity |
+| `FrontendHighRequestRate` | info | 1m | Unusual load |
+| `FrontendHighP95Latency` | warning | 1m | Degraded latency |
+| `FrontendHighP99Latency` | critical | 1m | Severe tail latency |
+| `FrontendHighConcurrentRequests` | warning | 30s | Saturation risk |
 
-Alert thresholds and notification routing should be agreed with the service
-owner. The Kubernetes Metrics API was unavailable during previous checks, so
-metrics collection must be verified before relying on CPU and memory metrics
-for autoscaling or alerting.
+Loki log alerts: `ErrorLogSpike` (more than 10 `ERROR` lines in 2 minutes in `ecommerce-prod`) and `CriticalLogException` (any panic, exception or gRPC unavailable line). Alertmanager routes alerts to Slack.
 
-Dashboards and alerts should be tested with representative failure conditions
-before production handover.
+### Service level objectives (initial targets)
+
+| SLI | Target |
+|---|---|
+| Availability (non-5xx responses) | 99.5% over 30 days |
+| Latency (p95) | Under 500 ms, tuned after a measured baseline |
+| Backup freshness | Latest Qdrant snapshot no older than 26 hours |
+
+### Also monitor
+
+Pod restarts, CPU and memory pressure, Qdrant availability and volume capacity, Vault authentication and injection failures, backup job failures, storage growth and cloud cost.
+
+### Pilot notes
+
+KinD does not expose some control-plane metrics, so `etcd*`, `KubeControllerManager*` and `kube-proxy` alerts fire on the pilot. These are environment artefacts and are not expected on managed Kubernetes. Alert drills (scale the frontend down with Argo CD sync paused, then confirm FIRING and RESOLVED messages in Slack) are repeated after material monitoring changes.
 
 ## 9. Disaster recovery and availability
 
-The current Qdrant deployment has one replica. It is therefore a single point
-of failure, and its persistent volume does not provide high availability or
-protection against all node and storage failures.
+- Multi-AZ RDS covers an Availability Zone failure. Automated backups (7 days) cover logical deletion or corruption.
+- Qdrant is a single replica with daily snapshots, so it is a single point of failure between backups. Recovery means restoring the latest snapshot, with a loss window up to the backup interval.
+- A full regional failure requires a second region. This is a roadmap item and depends on customer-approved residency (see the README).
 
-The production design should address:
+| Item | Target |
+|---|---|
+| Qdrant RPO | 24 hours or less, assuming the latest scheduled backup succeeded |
+| RDS RPO | Latest restorable point, verified during the incident |
+| Initial RTO | 4 hours or less, from incident declaration to validated service |
 
-- Independent backup storage outside the cluster.
-- Recovery from node and availability-zone failures.
-- Restoration of Qdrant data and validation of the retrieval API.
-- Appropriate workload redundancy and scheduling.
-- Recovery of secrets and access permissions.
-- Documented escalation and ownership during an incident.
-
-The Recovery Time Objective (RTO), Recovery Point Objective (RPO), backup
-frequency, and retention period must be agreed with the service owner. These
-targets have not yet been established through a tested recovery process.
-
-Production disaster recovery remains unverified until backup restoration and
-the required infrastructure recovery procedures have been exercised.
+These are design targets, confirmed by a timed restore at realistic data volume.
 
 ## 10. Security controls
 
-The retrieval API manifest includes non-root execution, a read-only root
-filesystem, dropped Linux capabilities, and resource requests and limits.
-
-The wider production configuration should also ensure that:
-
-- Service accounts and IAM permissions follow least-privilege principles.
-- Production workloads use an appropriate identity mechanism.
-- Traffic between the API, Qdrant, Vault, and other services is restricted.
-- Data is encrypted in transit and at rest.
-- Qdrant access controls are configured and tested.
-- Container images are scanned and referenced by immutable digests.
-- Secrets are excluded from source control, logs, and release artifacts.
-- Privileged access and secret rotation are auditable.
-
-Network policies, Qdrant authentication, production IAM permissions, and
-workload identity require further verification before production deployment.
+- Retrieval API: non-root, read-only root filesystem, dropped capabilities, resource limits.
+- NetworkPolicies on `frontend` and `paymentservice`. Default-deny policies for every application namespace are on the roadmap.
+- Vault with TLS, Kubernetes auth and per-service policy.
+- CI authenticates to AWS with GitHub OIDC, with trust limited to one repository and branch.
+- Images are scanned (Trivy, `govulncheck`, `npm audit`), tagged with the commit SHA and immutable in ECR.
+- KMS encryption with rotation for S3 and CloudTrail, encrypted RDS and EBS, IMDSv2 required.
+- Secrets are excluded from source control, logs and release artifacts.
+- Production hardening list: HTTPS certificate on the ALB, restricted security group egress, GuardDuty, AWS Config and Security Hub, Actions pinned by commit SHA, Qdrant authentication.
 
 ## 11. Cost management
 
-The production environment should be reviewed for compute, storage, database,
-load balancer, logging, and encryption costs.
-
-Resource requests and limits should reflect measured usage. Backup retention,
-S3 object versions, log retention, data transfer, and autoscaling limits should
-be configured to balance availability, recovery requirements, and cost.
-
-Changes that create billable AWS resources should be reviewed before they are
-applied. The current lack of AWS credentials prevented live resource and cost
-verification.
+Review compute, storage, database, load balancer, logging and encryption costs before provisioning. Resource requests and limits follow measured usage. Backup retention, S3 object versions, log retention, data transfer and autoscaling limits balance availability, recovery needs and cost. The dev design uses one NAT Gateway and small instance classes. Production weighs one NAT per Availability Zone. Anything that creates billable AWS resources is reviewed before `terraform apply`.
 
 ## 12. Operational handover
 
-The handover documentation should describe the architecture, deployment
-process, required configuration, monitoring, incident procedures, rollback,
-backup and restoration, security controls, and known limitations.
+Handover covers the architecture, deployment process, required configuration, monitoring, incident procedures, rollback, backup and restoration, security controls and the roadmap.
 
-Before production operation, the team needs to complete and validate the
-outstanding work described in this runbook, particularly Vault secret
-injection, AWS identity and permissions, automated off-cluster backups,
-restoration, and disaster recovery.
+First-day checklist for a new customer: choose the region and confirm residency, create the state bucket, set variables, review and apply Terraform, install Argo CD, apply `root/app-of-apps.yaml`, initialise and unseal Vault, supply the certificate ARN, confirm alerts reach the customer channel, and run a timed restore.
 
-The current implementation provides a foundation for the retrieval service,
-but live AWS deployment and end-to-end production recovery have not yet been
-demonstrated.
+Outstanding items before production operation: verify Vault secret injection into the retrieval service, apply Terraform in the target account, run the automated off-cluster backup end to end, perform a timed restore at realistic volume, and add staging and production environments.
