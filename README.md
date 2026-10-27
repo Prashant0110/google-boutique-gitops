@@ -194,12 +194,6 @@ online-boutique-cicd/
 | `evidence/` | Pilot screenshots (sections 10 and 11) |
 | `docs/` | `operations-runbook.md` and `recovery-runbook.md` (the operations runbook deliverable) |
 
-### 6.4 Where each file lives
-
-- **This README** is the single full README. It sits at the root of the submission ZIP, next to the `google-boutique-gitops/` and `online-boutique-cicd/` folders, and can also be copied into the GitOps repository root.
-- **`online-boutique-cicd`** carries a short README that describes the repository and links back to this document, so the full text is not duplicated and cannot drift.
-- **`diagrams/`, `evidence/` and `docs/`** sit beside this README at the submission root. The relative links in this document depend on that layout.
-
 ---
 
 ## 7. CI/CD, GitOps and rollback
